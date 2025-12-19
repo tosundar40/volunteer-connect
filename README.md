@@ -21,9 +21,8 @@
 - **Profile Management**: Comprehensive volunteer profiles with skills and interests
 - **Opportunity Discovery**: Advanced search and filtering of volunteer opportunities
 - **Application System**: Easy application process with status tracking
-- **Calendar Integration**: Manage volunteering schedules and commitments
+- **Opportunity Matching**: Matching based on skills, location, and availability
 - **Hour Tracking**: Automatic tracking of volunteer hours and achievements
-- **Community Features**: Connect with other volunteers and organizations
 
 ### For Administrators
 - **User Management**: Comprehensive admin dashboard for user oversight
@@ -34,7 +33,6 @@
 
 ### Technical Features
 - **Real-time Notifications**: Instant updates via WebSocket connections
-- **Responsive Design**: Mobile-first design that works across all devices
 - **Security First**: JWT authentication, RBAC, and data encryption
 - **API-First**: RESTful APIs with comprehensive documentation
 - **Scalable Architecture**: Microservices-ready architecture with Docker support
