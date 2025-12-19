@@ -12,7 +12,7 @@
 ### For Organizations
 - **Organization Management**: Complete charity profile management and verification
 - **Opportunity Creation**: Create detailed volunteering opportunities with skill requirements
-- **Volunteer Matching**: AI-powered matching based on skills, location, and availability
+- **Volunteer Matching**: Matching based on skills, location, and availability
 - **Application Management**: Review, approve, and manage volunteer applications
 - **Attendance Tracking**: Monitor and record volunteer participation hours
 - **Communication Tools**: Direct messaging with volunteers and announcements
