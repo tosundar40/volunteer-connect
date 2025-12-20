@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const attendanceController = require('../controllers/attendance.controller');
 const { protect, authorize } = require('../middleware/auth');
-const { validateUUID, validateOpportunityUUID } = require('../middleware/validation');
+const { validateUUID, validateOpportunityUUID, validateCharityUUID, validateVolunteerUUID } = require('../middleware/validation');
 
 // Get volunteers for attendance tracking
 router.get(
@@ -54,6 +54,29 @@ router.delete(
   authorize('charity'),
   validateUUID,
   attendanceController.deleteAttendance
+);
+
+// Get average charity rating for a volunteer
+router.get(
+  '/volunteer/:volunteerId/average-rating',
+  protect,
+  validateVolunteerUUID,
+  attendanceController.getVolunteerAverageRating
+);
+
+// Get average volunteer rating for an opportunity
+router.get(
+  '/opportunity/:opportunityId/average-rating',
+  protect,
+  validateOpportunityUUID,
+  attendanceController.getOpportunityAverageRating
+);
+
+// Get average charity rating for all opportunities by a charity
+router.get(
+  '/charity/:charityId/average-rating',
+  validateCharityUUID,
+  attendanceController.getCharityAverageRating
 );
 
 module.exports = router;

@@ -108,14 +108,15 @@ const Charity = sequelize.define('Charity', {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   },
-  rating: {
-    type: DataTypes.DECIMAL(3, 2),
-    defaultValue: 0.0,
-    validate: {
-      min: 0,
-      max: 5
-    }
-  },
+  // Remove consolidated rating field - ratings will be calculated from individual attendance records
+  // rating: {
+  //   type: DataTypes.DECIMAL(3, 2),
+  //   defaultValue: 0.0,
+  //   validate: {
+  //     min: 0,
+  //     max: 5
+  //   }
+  // },
   totalVolunteers: {
     type: DataTypes.INTEGER,
     defaultValue: 0

@@ -45,6 +45,7 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
   const [volunteers, setVolunteers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingVolunteer, setEditingVolunteer] = useState(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [attendanceData, setAttendanceData] = useState({
     status: "",
     hoursWorked: "",
@@ -53,6 +54,8 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
     notes: "",
     charityFeedback: "",
     charityRating: 0,
+    volunteerFeedback: "",
+    volunteerRating: 0,
   });
 
   const statusOptions = [
@@ -85,6 +88,11 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
 
   const handleEditAttendance = (volunteer) => {
     const attendance = volunteer.attendance;
+
+    // If attendance was already recorded by the charity, open in view-only mode
+    const readOnly = !!(attendance && attendance.recordedBy);
+    setIsReadOnly(readOnly);
+
     setEditingVolunteer(volunteer.id);
     setAttendanceData({
       status: attendance?.status || "",
@@ -94,6 +102,8 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
       notes: attendance?.notes || "",
       charityFeedback: attendance?.charityFeedback || "",
       charityRating: attendance?.charityRating || 0,
+      volunteerFeedback: attendance?.volunteerFeedback || "",
+      volunteerRating: attendance?.volunteerRating || 0,
     });
   };
 
@@ -112,6 +122,8 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
         notes: attendanceData.notes,
         charityFeedback: attendanceData.charityFeedback,
         charityRating: attendanceData.charityRating || null,
+        volunteerFeedback: attendanceData.volunteerFeedback,
+        volunteerRating: attendanceData.volunteerRating || null,
       };
 
       await attendanceService.recordAttendance(payload);
@@ -130,6 +142,8 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
         notes: "",
         charityFeedback: "",
         charityRating: 0,
+        volunteerFeedback: "",
+        volunteerRating: 0,
       });
     } catch (error) {
       toast.error(error.response?.data?.error || "Failed to record attendance");
@@ -147,6 +161,8 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
       notes: "",
       charityFeedback: "",
       charityRating: 0,
+      volunteerFeedback: "",
+      volunteerRating: 0,
     });
   };
 
@@ -246,7 +262,7 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
                           onClick={() => handleEditAttendance(volunteer)}
                           disabled={editingVolunteer && editingVolunteer !== volunteer.id}
                         >
-                          {editingVolunteer === volunteer.id ? "Editing" : "Record"}
+                          {editingVolunteer === volunteer.id ? "Editing" : (volunteer.attendance && volunteer.attendance.recordedBy ? "View" : "Record")}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -269,6 +285,7 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
                       value={attendanceData.status}
                       label="Status"
                       onChange={(e) => setAttendanceData(prev => ({ ...prev, status: e.target.value }))}
+                      disabled={isReadOnly}
                     >
                       {statusOptions.map((option) => (
                         <MenuItem key={option.value} value={option.value}>
@@ -289,6 +306,7 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
                     value={attendanceData.hoursWorked}
                     onChange={(e) => setAttendanceData(prev => ({ ...prev, hoursWorked: e.target.value }))}
                     inputProps={{ step: "0.5", min: "0" }}
+                    disabled={isReadOnly}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -298,9 +316,11 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
                     onChange={(value) => setAttendanceData(prev => ({ ...prev, checkInTime: value }))}
                     slotProps={{
                       textField: {
-                        fullWidth: true
+                        fullWidth: true,
+                        disabled: isReadOnly
                       }
                     }}
+                    disabled={isReadOnly}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -310,9 +330,11 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
                     onChange={(value) => setAttendanceData(prev => ({ ...prev, checkOutTime: value }))}
                     slotProps={{
                       textField: {
-                        fullWidth: true
+                        fullWidth: true,
+                        disabled: isReadOnly
                       }
                     }}
+                    disabled={isReadOnly}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -323,6 +345,7 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
                     rows={2}
                     value={attendanceData.notes}
                     onChange={(e) => setAttendanceData(prev => ({ ...prev, notes: e.target.value }))}
+                    disabled={isReadOnly}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -333,29 +356,81 @@ const AttendanceDialog = ({ open, onClose, opportunity }) => {
                     rows={2}
                     value={attendanceData.charityFeedback}
                     onChange={(e) => setAttendanceData(prev => ({ ...prev, charityFeedback: e.target.value }))}
+                    disabled={isReadOnly}
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <Box>
-                    <Typography variant="body2" gutterBottom>
+                  <Box sx={{ p: 2, bgcolor: 'primary.50', borderRadius: 1, border: '1px solid', borderColor: 'primary.200' }}>
+                    <Typography variant="body2" gutterBottom sx={{ fontWeight: 'medium', color: 'primary.main' }}>
                       Rate Volunteer Performance (Optional)
                     </Typography>
-                    <Rating
-                      value={attendanceData.charityRating}
-                      onChange={(_, newValue) => setAttendanceData(prev => ({ ...prev, charityRating: newValue }))}
-                    />
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <Rating
+                        value={attendanceData.charityRating}
+                        onChange={(_, newValue) => setAttendanceData(prev => ({ ...prev, charityRating: newValue }))}
+                        size="large"
+                        readOnly={isReadOnly}
+                      />
+                      {attendanceData.charityRating > 0 && (
+                        <Typography variant="body2" color="primary">
+                          {attendanceData.charityRating}/5 stars
+                        </Typography>
+                      )}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Your rating will help other charities evaluate this volunteer's contributions
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Volunteer's Feedback about Organization/Opportunity"
+                    multiline
+                    rows={2}
+                    value={attendanceData.volunteerFeedback}
+                    onChange={(e) => setAttendanceData(prev => ({ ...prev, volunteerFeedback: e.target.value }))}
+                    helperText="Record any feedback the volunteer provided about the experience"
+                    disabled={isReadOnly}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
+                    <Typography variant="body2" gutterBottom sx={{ fontWeight: 'medium', color: 'info.main' }}>
+                      Volunteer's Rating of Organization/Opportunity
+                    </Typography>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <Rating
+                        value={attendanceData.volunteerRating}
+                        onChange={(_, newValue) => setAttendanceData(prev => ({ ...prev, volunteerRating: newValue }))}
+                        size="large"
+                        readOnly={true}
+                        sx={{ opacity: attendanceData.volunteerRating > 0 ? 1 : 0.5 }}
+                      />
+                      {attendanceData.volunteerRating > 0 && (
+                        <Typography variant="body2" color="info.main">
+                          {attendanceData.volunteerRating}/5 stars
+                        </Typography>
+                      )}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {attendanceData.volunteerRating > 0 
+                        ? "The volunteer provided this rating for their experience" 
+                        : "Record the rating the volunteer gave for their experience (if any)"
+                      }
+                    </Typography>
                   </Box>
                 </Grid>
               </Grid>
               <Box mt={2} display="flex" gap={1} justifyContent="flex-end">
                 <Button onClick={handleCancelEdit}>
-                  Cancel
+                  Close
                 </Button>
                 <Button
                   variant="contained"
                   onClick={handleSaveAttendance}
                   startIcon={<SaveIcon />}
-                  disabled={!attendanceData.status}
+                  disabled={!attendanceData.status || isReadOnly}
                 >
                   Save Attendance
                 </Button>

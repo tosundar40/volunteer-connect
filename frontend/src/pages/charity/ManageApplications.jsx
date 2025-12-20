@@ -161,6 +161,8 @@ const ManageApplications = () => {
     } else if (tabValue === 2) {
       return applications.filter((app) => app.status === 'approved');
     } else if (tabValue === 3) {
+      return applications.filter((app) => app.status === 'confirmed');
+    } else if (tabValue === 4) {
       return applications.filter((app) => app.status === 'rejected');
     }
     return applications;
@@ -379,6 +381,11 @@ const ManageApplications = () => {
                 )})`}
               />
               <Tab
+                label={`Confirmed (${(
+                  applications.filter((a) => a.status === "confirmed").length
+                )})`}
+              />
+              <Tab
                 label={`Rejected (${(
                   applications.filter((a) => a.status === "rejected").length
                 )})`}
@@ -452,6 +459,26 @@ const ManageApplications = () => {
           </TabPanel>
 
           <TabPanel value={tabValue} index={3}>
+            {filteredApplications.length === 0 ? (
+              <Alert severity="info">No confirmed applications</Alert>
+            ) : (
+              <Grid container spacing={3}>
+                {filteredApplications.map((application) => (
+                  <Grid item xs={12} key={application.id}>
+                    <ApplicationCard
+                      application={application}
+                      onReview={handleReviewOpen}
+                      onViewProfile={handleViewProfile}
+                      onRequestInfo={handleRequestInfo}
+                      showActions={false}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={4}>
             {filteredApplications.length === 0 ? (
               <Alert severity="info">No rejected applications</Alert>
             ) : (
@@ -903,6 +930,8 @@ const ApplicationCard = ({
                     <TimelineIcon />
                   ) : application.status === "approved" ? (
                     <ApprovedIcon />
+                  ) : application.status === "confirmed" ? (
+                    <ApprovedIcon />
                   ) : application.status === "additional_info_requested" ? (
                     <RequestInfoIcon />
                   ) : (
@@ -922,6 +951,8 @@ const ApplicationCard = ({
                     : application.status === "under_review"
                     ? "info"
                     : application.status === "approved"
+                    ? "success"
+                    : application.status === "confirmed"
                     ? "success"
                     : application.status === "additional_info_requested"
                     ? "warning"

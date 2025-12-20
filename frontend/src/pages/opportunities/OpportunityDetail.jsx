@@ -8,6 +8,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Avatar, Rating
 } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import {
   LocationOn, Schedule, Group, Person, Email, Phone ,
   ArrowBack,  TrendingUp, Category, Business
@@ -30,12 +31,21 @@ const OpportunityDetail = () => {
   const [applying, setApplying] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState(null);
+  const [averageRating, setAverageRating] = useState({
+    rating: 0,
+    count: 0,
+    loading: true
+  });
 
   useEffect(() => {
     const fetchOpportunity = async () => {
       try {
         const { data } = await api.get(`/opportunities/${id}`);
         setOpportunity(data.data);
+          // Fetch charity average rating after opportunity is loaded
+          if (data.data?.charity?.id) {
+            fetchCharityAverageRating(data.data.charity.id);
+          }
       } catch (error) {
         toast.error('Failed to fetch opportunity details');
         navigate('/opportunities');
@@ -46,6 +56,24 @@ const OpportunityDetail = () => {
 
     fetchOpportunity();
   }, [id, navigate]);
+  const fetchCharityAverageRating = async (charityId) => {
+    if (!charityId) {
+      setAverageRating({ rating: 0, count: 0, loading: false });
+      return;
+    }
+
+    try {
+      const { data } = await api.get(`/attendance/charity/${charityId}/average-rating`);
+      setAverageRating({
+        rating: data.data.averageRating || 0,
+        count: data.data.ratingCount || 0,
+        loading: false
+      });
+    } catch (error) {
+      console.error('Failed to fetch charity rating:', error);
+      setAverageRating({ rating: 0, count: 0, loading: false });
+    }
+  };
 
   useEffect(() => {
     const checkIfApplied = async () => {
@@ -153,16 +181,34 @@ const OpportunityDetail = () => {
     }
 
     if (user.role === 'volunteer') {
+      const isFull = opportunity && (opportunity.volunteersConfirmed >= opportunity.numberOfVolunteers) && opportunity.numberOfVolunteers > 0;
+      const disabled = applying || hasApplied || isFull || approvalStatus === 'pending';
+      let label = 'Apply Now';
+      if (applying) label = 'Applying...';
+      else if (hasApplied) label = 'Already Applied';
+      else if (approvalStatus === 'pending') label = 'Pending Approval';
+      else if (isFull) label = 'Full';
+
+      const tooltip = approvalStatus === 'pending'
+        ? 'Your account approval is pending — you cannot apply yet.'
+        : isFull
+        ? 'This opportunity has reached the required number of volunteers.'
+        : '';
+
       return (
-        <Button 
-          variant="contained" 
-          size="large" 
-          onClick={handleApply}
-          disabled={applying || hasApplied}
-          startIcon={applying ? <CircularProgress size={20} /> : null}
-        >
-          {applying ? 'Applying...' : hasApplied ? 'Already Applied' : 'Apply Now'}
-        </Button>
+        <Tooltip title={tooltip}>
+          <span>
+            <Button 
+              variant="contained" 
+              size="large" 
+              onClick={handleApply}
+              disabled={disabled}
+              startIcon={applying ? <CircularProgress size={20} /> : null}
+            >
+              {label}
+            </Button>
+          </span>
+        </Tooltip>
       );
     }
 
@@ -418,6 +464,37 @@ const OpportunityDetail = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Volunteer Rating Card */}
+          {averageRating.count > 0 && (
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Charity Rating
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  {averageRating.loading ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    <>
+                      <Rating 
+                        value={averageRating.rating} 
+                        precision={0.1}
+                        readOnly 
+                        size="medium"
+                      />
+                      <Typography variant="body2" sx={{ ml: 1 }}>
+                        {averageRating.rating.toFixed(1)}/5
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  Based on {averageRating.count} volunteer rating{averageRating.count !== 1 ? 's' : ''} for this charity
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Action Buttons */}
           <Box sx={{ textAlign: 'center' }}>

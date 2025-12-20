@@ -100,6 +100,18 @@ const validateOpportunityUUID = [
   validate
 ];
 
+// UUID param validation for charityId
+const validateCharityUUID = [
+  param('charityId').isUUID().withMessage('Invalid charity ID format'),
+  validate
+];
+
+// UUID param validation for volunteerId
+const validateVolunteerUUID = [
+  param('volunteerId').isUUID().withMessage('Invalid volunteer ID format'),
+  validate
+];
+
 module.exports = {
   validate,
   validateRegister,
@@ -110,4 +122,6 @@ module.exports = {
   validateApplication,
   validateUUID,
   validateOpportunityUUID
+  ,validateCharityUUID
+  ,validateVolunteerUUID
 };

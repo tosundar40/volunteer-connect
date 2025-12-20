@@ -487,7 +487,6 @@ For detailed guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 ### Getting Help
 - 📚 **Documentation**: [Getting Started](GETTING_STARTED.md) | [Development Guide](DEVELOPMENT.md)
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/tosundar40/volunteer-connect/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/tosundar40/volunteer-connect/discussions)
 - 📧 **Contact**: [reachtosundar@gmail.com](mailto:reachtosundar@gmail.com)
 
 ### Community Guidelines

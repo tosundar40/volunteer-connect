@@ -48,14 +48,14 @@ const AttendanceHistory = () => {
     currentPage: 1,
     totalPages: 1,
     totalRecords: 0,
-    limit: 10
+    limit: 10,
   });
-  
+
   // Filter states
   const [statusFilter, setStatusFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  
+
   // Feedback dialog states
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState(null);
@@ -64,10 +64,20 @@ const AttendanceHistory = () => {
 
   const statusOptions = [
     { value: "", label: "All Status" },
-    { value: "present", label: "Present", color: "success", icon: <CheckCircleIcon /> },
+    {
+      value: "present",
+      label: "Present",
+      color: "success",
+      icon: <CheckCircleIcon />,
+    },
     { value: "absent", label: "Absent", color: "error", icon: <CancelIcon /> },
     { value: "late", label: "Late", color: "warning", icon: <ScheduleIcon /> },
-    { value: "excused", label: "Excused", color: "info", icon: <EventBusyIcon /> },
+    {
+      value: "excused",
+      label: "Excused",
+      color: "info",
+      icon: <EventBusyIcon />,
+    },
   ];
 
   const fetchAttendanceHistory = async (page = 1) => {
@@ -78,7 +88,7 @@ const AttendanceHistory = () => {
         limit: pagination.limit,
         ...(statusFilter && { status: statusFilter }),
         ...(startDate && { startDate }),
-        ...(endDate && { endDate })
+        ...(endDate && { endDate }),
       };
 
       const response = await attendanceService.getMyAttendanceHistory(params);
@@ -101,9 +111,11 @@ const AttendanceHistory = () => {
   };
 
   const getStatusChip = (status) => {
-    const statusConfig = statusOptions.find(option => option.value === status);
+    const statusConfig = statusOptions.find(
+      (option) => option.value === status
+    );
     if (!statusConfig) return null;
-    
+
     return (
       <Chip
         icon={statusConfig.icon}
@@ -127,7 +139,7 @@ const AttendanceHistory = () => {
     try {
       await attendanceService.submitVolunteerFeedback(selectedAttendance.id, {
         volunteerFeedback: feedback,
-        volunteerRating: rating
+        volunteerRating: rating,
       });
       toast.success("Feedback submitted successfully!");
       setFeedbackDialogOpen(false);
@@ -140,7 +152,10 @@ const AttendanceHistory = () => {
 
   if (loading && attendanceHistory.length === 0) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
+      <Container
+        maxWidth="lg"
+        sx={{ mt: 4, display: "flex", justifyContent: "center" }}
+      >
         <CircularProgress />
       </Container>
     );
@@ -152,7 +167,8 @@ const AttendanceHistory = () => {
         My Attendance History
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        View your participation records and provide feedback on volunteering opportunities.
+        View your participation records and provide feedback on volunteering
+        opportunities.
       </Typography>
 
       {/* Filters */}
@@ -206,7 +222,8 @@ const AttendanceHistory = () => {
 
       {attendanceHistory.length === 0 ? (
         <Alert severity="info">
-          No attendance records found. Start volunteering to see your participation history here!
+          No attendance records found. Start volunteering to see your
+          participation history here!
         </Alert>
       ) : (
         <>
@@ -219,6 +236,7 @@ const AttendanceHistory = () => {
                   <TableCell>Date</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Hours</TableCell>
+                  <TableCell> Charity's Rating</TableCell>
                   <TableCell>My Rating</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -233,7 +251,10 @@ const AttendanceHistory = () => {
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           <EventIcon fontSize="small" sx={{ mr: 0.5 }} />
-                          {format(parseISO(attendance.opportunity.startDate), "MMM dd, yyyy")}
+                          {format(
+                            parseISO(attendance.opportunity.startDate),
+                            "MMM dd, yyyy"
+                          )}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -247,40 +268,70 @@ const AttendanceHistory = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {format(parseISO(attendance.createdAt), "MMM dd, yyyy 'at' h:mm a")}
+                        {format(
+                          parseISO(attendance.createdAt),
+                          "MMM dd, yyyy 'at' h:mm a"
+                        )}
                       </Typography>
                     </TableCell>
-                    <TableCell>
-                      {getStatusChip(attendance.status)}
-                    </TableCell>
+                    <TableCell>{getStatusChip(attendance.status)}</TableCell>
                     <TableCell>
                       <Box display="flex" alignItems="center">
-                        <AccessTimeIcon fontSize="small" sx={{ mr: 0.5, color: "text.secondary" }} />
+                        <AccessTimeIcon
+                          fontSize="small"
+                          sx={{ mr: 0.5, color: "text.secondary" }}
+                        />
                         {attendance.hoursWorked || "N/A"}
                       </Box>
                     </TableCell>
                     <TableCell>
-                      {attendance.volunteerRating ? (
-                        <Box display="flex" alignItems="center">
-                          <Rating value={attendance.volunteerRating} size="small" readOnly />
-                          <Typography variant="caption" sx={{ ml: 1 }}>
-                            ({attendance.volunteerRating})
+                      <Box display="flex" alignItems="center" gap={2}>
+                        {attendance.charityRating ? (
+                          <>
+                            <Rating
+                              value={attendance.charityRating}
+                              size="small"
+                              readOnly
+                            />
+                            <Typography variant="caption" color="success.main">
+                              {attendance.charityRating}/5
+                            </Typography>
+                          </>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            No rating yet
                           </Typography>
-                        </Box>
-                      ) : (
-                        <Typography variant="caption" color="text.secondary">
-                          Not rated
-                        </Typography>
-                      )}
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        {attendance.volunteerRating ? (
+                          <>
+                            <Rating
+                              value={attendance.volunteerRating}
+                              size="small"
+                              readOnly
+                            />
+                            <Typography variant="caption" color="primary">
+                              {attendance.volunteerRating}/5
+                            </Typography>
+                          </>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            Not rated
+                          </Typography>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell>
                       <Button
                         size="small"
                         startIcon={<FeedbackIcon />}
                         onClick={() => handleProvideFeedback(attendance)}
-                        variant={attendance.volunteerFeedback ? "outlined" : "contained"}
+                        variant="contained"
                       >
-                        {attendance.volunteerFeedback ? "Update" : "Feedback"}
+                        Feedback
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -303,7 +354,12 @@ const AttendanceHistory = () => {
       )}
 
       {/* Feedback Dialog */}
-      <Dialog open={feedbackDialogOpen} onClose={() => setFeedbackDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={feedbackDialogOpen}
+        onClose={() => setFeedbackDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>
           Provide Feedback
           {selectedAttendance && (
@@ -313,35 +369,79 @@ const AttendanceHistory = () => {
           )}
         </DialogTitle>
         <DialogContent dividers>
+          {/* Show Charity Rating if available */}
+          {selectedAttendance?.charityRating && (
+            <Box
+              sx={{
+                mb: 3,
+                p: 2,
+                bgcolor: "success.50",
+                borderRadius: 1,
+                border: "1px solid",
+                borderColor: "success.200",
+              }}
+            >
+              <Typography
+                variant="body2"
+                gutterBottom
+                sx={{ fontWeight: "medium", color: "success.main" }}
+              >
+                Rating Received from Charity
+              </Typography>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Rating
+                  value={selectedAttendance.charityRating}
+                  readOnly
+                  size="medium"
+                />
+                <Typography variant="body2" color="success.main">
+                  {selectedAttendance.charityRating}/5 stars
+                </Typography>
+              </Box>
+              {selectedAttendance.charityFeedback && (
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Feedback: "{selectedAttendance.charityFeedback}"
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+
+          {/* Volunteer Rating Section */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" gutterBottom>
-              Rate your experience (Optional)
+            <Typography
+              variant="body2"
+              gutterBottom
+              sx={{ fontWeight: "medium" }}
+            >
+              Rate Your Experience
             </Typography>
             <Rating
               value={rating}
               onChange={(_, newValue) => setRating(newValue)}
               size="large"
             />
+            {rating > 0 && (
+              <Typography variant="body2" sx={{ mt: 1, color: "primary.main" }}>
+                {rating}/5 stars
+              </Typography>
+            )}
           </Box>
+
           <TextField
             fullWidth
             multiline
             rows={4}
             label="Your Feedback (Optional)"
-            placeholder="Share your experience with this volunteering opportunity..."
+            placeholder="Share your experience with this volunteering opportunity and organization..."
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFeedbackDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={submitFeedback} 
-            variant="contained"
-            startIcon={<StarIcon />}
-          >
+          <Button onClick={() => setFeedbackDialogOpen(false)}>Cancel</Button>
+          <Button onClick={submitFeedback} variant="contained">
             Submit Feedback
           </Button>
         </DialogActions>

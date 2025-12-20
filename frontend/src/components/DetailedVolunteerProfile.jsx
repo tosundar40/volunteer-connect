@@ -29,7 +29,9 @@ import {
   AccordionSummary,
   AccordionDetails,
   Link,
-  Badge
+  Badge,
+  Rating,
+  CircularProgress
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -49,6 +51,7 @@ import {
   Interests as InterestsIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
+import api from '../services/api';
 
 const DetailedVolunteerProfile = ({ 
   open, 
@@ -60,12 +63,35 @@ const DetailedVolunteerProfile = ({
 }) => {
   const [profileCompleteness, setProfileCompleteness] = useState(0);
   const [riskAssessment, setRiskAssessment] = useState('low');
+  const [averageRating, setAverageRating] = useState({
+    rating: 0,
+    count: 0,
+    loading: true
+  });
 
   useEffect(() => {
     if (volunteer) {
       calculateProfileCompleteness();
+      fetchVolunteerAverageRating();
     }
   }, [volunteer]);
+
+  const fetchVolunteerAverageRating = async () => {
+    if (!volunteer?.id) return;
+    
+    setAverageRating(prev => ({ ...prev, loading: true }));
+    try {
+      const { data } = await api.get(`/attendance/volunteer/${volunteer.id}/average-rating`);
+      setAverageRating({
+        rating: data.data.averageRating || 0,
+        count: data.data.ratingCount || 0,
+        loading: false
+      });
+    } catch (error) {
+      console.error('Failed to fetch volunteer rating:', error);
+      setAverageRating({ rating: 0, count: 0, loading: false });
+    }
+  };
 
   const calculateProfileCompleteness = () => {
     if (!volunteer) return 0;
@@ -166,60 +192,80 @@ const DetailedVolunteerProfile = ({
       </DialogTitle>
 
       <DialogContent sx={{ p: 0 }}>
-        {/* Profile Overview Cards */}
-        <Box sx={{ p: 3, bgcolor: 'grey.50' }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6">Profile Completeness</Typography>
-                  <Box sx={{ mt: 1, mb: 2 }}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={profileCompleteness}
-                      color={getCompletenessColor(profileCompleteness)}
-                      sx={{ height: 8, borderRadius: 4 }}
-                    />
-                  </Box>
-                  <Typography variant="h4" color={`${getCompletenessColor(profileCompleteness)}.main`}>
-                    {profileCompleteness}%
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6">Risk Assessment</Typography>
-                  <Box sx={{ mt: 2, mb: 2 }}>
-                    <SecurityIcon sx={{ fontSize: 40, color: `${getRiskColor(riskAssessment)}.main` }} />
-                  </Box>
-                  <Chip 
-                    label={riskAssessment.toUpperCase()} 
-                    color={getRiskColor(riskAssessment)}
-                    size="medium"
+        {/* Profile Overview Stats */}
+        <Box sx={{ p: 2, bgcolor: 'grey.50', borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Grid container spacing={1.5}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
+                <Typography variant="subtitle2" gutterBottom>Profile Completeness</Typography>
+                <Box sx={{ mt: 0.5, mb: 1 }}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={profileCompleteness}
+                    color={getCompletenessColor(profileCompleteness)}
+                    sx={{ height: 6, borderRadius: 4 }}
                   />
-                </CardContent>
-              </Card>
+                </Box>
+                <Typography variant="h5" color={`${getCompletenessColor(profileCompleteness)}.main`} sx={{ fontWeight: 600 }}>
+                  {profileCompleteness}%
+                </Typography>
+              </Box>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6">Application Status</Typography>
-                  <Box sx={{ mt: 2, mb: 2 }}>
-                    {application?.status === 'pending' && <TimeIcon sx={{ fontSize: 40, color: 'warning.main' }} />}
-                    {application?.status === 'under_review' && <AssignmentIcon sx={{ fontSize: 40, color: 'info.main' }} />}
-                    {application?.status === 'approved' && <CheckCircleIcon sx={{ fontSize: 40, color: 'success.main' }} />}
-                  </Box>
-                  <Chip 
-                    label={application?.status?.replace('_', ' ').toUpperCase() || 'PENDING'} 
-                    color={
-                      application?.status === 'approved' ? 'success' :
-                      application?.status === 'under_review' ? 'info' : 'warning'
-                    }
-                  />
-                </CardContent>
-              </Card>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
+                <Typography variant="subtitle2" gutterBottom>Risk Assessment</Typography>
+                <Box sx={{ mt: 1, mb: 1 }}>
+                  <SecurityIcon sx={{ fontSize: 28, color: `${getRiskColor(riskAssessment)}.main` }} />
+                </Box>
+                <Chip 
+                  label={riskAssessment.toUpperCase()} 
+                  color={getRiskColor(riskAssessment)}
+                  size="small"
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
+                <Typography variant="subtitle2" gutterBottom>Average Rating</Typography>
+                <Box sx={{ mt: 1, mb: 0.5 }}>
+                  {averageRating.loading ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <Stack alignItems="center" spacing={0.25}>
+                      <Rating 
+                        value={averageRating.rating} 
+                        precision={0.1}
+                        readOnly 
+                        size="small"
+                      />
+                      <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
+                        {averageRating.rating.toFixed(1)}/5
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {averageRating.count} rating{averageRating.count !== 1 ? 's' : ''}
+                      </Typography>
+                    </Stack>
+                  )}
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
+                <Typography variant="subtitle2" gutterBottom>Application Status</Typography>
+                <Box sx={{ mt: 1, mb: 1 }}>
+                  {application?.status === 'pending' && <TimeIcon sx={{ fontSize: 28, color: 'warning.main' }} />}
+                  {application?.status === 'under_review' && <AssignmentIcon sx={{ fontSize: 28, color: 'info.main' }} />}
+                  {application?.status === 'approved' && <CheckCircleIcon sx={{ fontSize: 28, color: 'success.main' }} />}
+                </Box>
+                <Chip 
+                  label={application?.status?.replace('_', ' ').toUpperCase() || 'PENDING'} 
+                  color={
+                    application?.status === 'approved' ? 'success' :
+                    application?.status === 'under_review' ? 'info' : 'warning'
+                  }
+                  size="small"
+                />
+              </Box>
             </Grid>
           </Grid>
         </Box>

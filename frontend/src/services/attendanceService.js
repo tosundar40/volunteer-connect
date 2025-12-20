@@ -35,6 +35,24 @@ const attendanceService = {
   deleteAttendance: async (attendanceId) => {
     const response = await api.delete(`/attendance/${attendanceId}`);
     return response.data;
+  },
+
+  // Get average charity rating for a volunteer
+  getVolunteerAverageRating: async (volunteerId) => {
+    const response = await api.get(`/attendance/volunteer/${volunteerId}/average-rating`);
+    return response.data;
+  },
+
+  // Get average volunteer rating for an opportunity
+  getOpportunityAverageRating: async (opportunityId) => {
+    const response = await api.get(`/attendance/opportunity/${opportunityId}/average-rating`);
+    return response.data;
+  },
+
+  // Get average volunteer rating for all opportunities by a charity
+  getCharityAverageRating: async (charityId) => {
+    const response = await api.get(`/attendance/charity/${charityId}/average-rating`);
+    return response.data;
   }
 };
 

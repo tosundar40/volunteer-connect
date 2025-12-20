@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const { Attendance, Application, Volunteer, User, Opportunity, Charity } = require('../models');
 const { Op } = require('sequelize');
+const Sequelize = require('sequelize');
 const AppError = require('../utils/appError');
 
 // @desc    Get volunteers for attendance tracking
@@ -149,6 +150,33 @@ const recordAttendance = asyncHandler(async (req, res) => {
   } else {
     // Create new record
     attendanceRecord = await Attendance.create(attendanceData);
+  }
+
+  // Recalculate and update volunteer totals (hours and opportunities completed)
+  // Use aggregate queries to avoid race conditions and ensure correctness
+  const volunteer = await Volunteer.findByPk(volunteerId);
+  if (volunteer) {
+    const hoursResult = await Attendance.findOne({
+      where: { volunteerId, hoursWorked: { [Op.not]: null } },
+      attributes: [
+        [Sequelize.fn('COALESCE', Sequelize.fn('SUM', Sequelize.col('hours_worked')), 0), 'totalHours']
+      ],
+      raw: true
+    });
+
+    const completedResult = await Attendance.findOne({
+      where: { volunteerId, status: { [Op.in]: ['present', 'late'] } },
+      attributes: [[Sequelize.fn('COUNT', Sequelize.col('id')), 'completedCount']],
+      raw: true
+    });
+
+    const totalHours = hoursResult?.totalHours ? parseFloat(hoursResult.totalHours) : 0;
+    const completedCount = completedResult?.completedCount ? parseInt(completedResult.completedCount, 10) : 0;
+
+    await volunteer.update({
+      totalHoursVolunteered: Math.round(totalHours),
+      totalOpportunitiesCompleted: completedCount
+    });
   }
 
   // Fetch the complete record with associations
@@ -375,11 +403,117 @@ const submitVolunteerFeedback = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get average charity rating for a volunteer
+// @route   GET /api/attendance/volunteer/:volunteerId/average-rating
+// @access  Private
+const getVolunteerAverageRating = asyncHandler(async (req, res) => {
+  const { volunteerId } = req.params;
+
+  // Calculate average rating given by charities to this volunteer
+  const result = await Attendance.findOne({
+    where: {
+      volunteerId,
+      charityRating: { [Op.not]: null }
+    },
+    attributes: [
+      [Sequelize.fn('AVG', Sequelize.col('charity_rating')), 'averageRating'],
+      [Sequelize.fn('COUNT', Sequelize.col('charity_rating')), 'ratingCount']
+    ],
+    raw: true
+  });
+
+  const averageRating = result?.averageRating ? parseFloat(result.averageRating).toFixed(2) : null;
+  const ratingCount = result?.ratingCount || 0;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      volunteerId,
+      averageRating: averageRating ? parseFloat(averageRating) : 0,
+      ratingCount: parseInt(ratingCount)
+    }
+  });
+});
+
+// @desc    Get average volunteer rating for an opportunity
+// @route   GET /api/attendance/opportunity/:opportunityId/average-rating
+// @access  Private
+const getOpportunityAverageRating = asyncHandler(async (req, res) => {
+  const { opportunityId } = req.params;
+
+  // Calculate average rating given by volunteers to this opportunity
+  const result = await Attendance.findOne({
+    where: {
+      opportunityId,
+      volunteerRating: { [Op.not]: null }
+    },
+    attributes: [
+      [Sequelize.fn('AVG', Sequelize.col('volunteer_rating')), 'averageRating'],
+      [Sequelize.fn('COUNT', Sequelize.col('volunteer_rating')), 'ratingCount']
+    ],
+    raw: true
+  });
+
+  const averageRating = result?.averageRating ? parseFloat(result.averageRating).toFixed(2) : null;
+  const ratingCount = result?.ratingCount || 0;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      opportunityId,
+      averageRating: averageRating ? parseFloat(averageRating) : 0,
+      ratingCount: parseInt(ratingCount)
+    }
+  });
+});
+
+// @desc    Get average charity rating for all opportunities by a charity
+// @route   GET /api/attendance/charity/:charityId/average-rating
+// @access  Private
+const getCharityAverageRating = asyncHandler(async (req, res) => {
+  const { charityId } = req.params;
+
+  // Calculate average rating given by volunteers to all opportunities of this charity
+  const result = await Attendance.findOne({
+    where: {
+      volunteerRating: { [Op.not]: null }
+    },
+    include: [
+      {
+        model: Opportunity,
+        as: 'opportunity',
+        where: { charityId },
+        attributes: []
+      }
+    ],
+    attributes: [
+      [Sequelize.fn('AVG', Sequelize.col('volunteer_rating')), 'averageRating'],
+      [Sequelize.fn('COUNT', Sequelize.col('volunteer_rating')), 'ratingCount']
+    ],
+    raw: true
+  });
+
+  const averageRating = result?.averageRating ? parseFloat(result.averageRating).toFixed(2) : null;
+  const ratingCount = result?.ratingCount || 0;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      charityId,
+      averageRating: averageRating ? parseFloat(averageRating) : 0,
+      ratingCount: parseInt(ratingCount)
+    }
+  });
+});
+
 module.exports = {
   getVolunteersForAttendance,
   recordAttendance,
   getOpportunityAttendance,
   deleteAttendance,
   getMyAttendanceHistory,
-  submitVolunteerFeedback
+  submitVolunteerFeedback,
+  getVolunteerAverageRating,
+  getOpportunityAverageRating,
+  getCharityAverageRating
 };

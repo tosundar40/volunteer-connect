@@ -8,6 +8,7 @@ router.get('/', protect, authorize('charity', 'moderator'), volunteerController.
 router.get('/me', protect, authorize('volunteer'), volunteerController.getMyVolunteerProfile);
 router.get('/:id', protect, validateUUID, volunteerController.getVolunteer);
 router.get('/:id/stats', protect, validateUUID, volunteerController.getVolunteerStats);
+router.get('/:id/average-rating', validateUUID, volunteerController.getVolunteerAverageRating);
 router.get('/:id/recommendations', protect, authorize('volunteer', 'moderator'), validateUUID, volunteerController.getRecommendations);
 
 router.post(

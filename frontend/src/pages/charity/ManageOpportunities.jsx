@@ -26,6 +26,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Rating,
+  Badge,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -36,12 +38,16 @@ import {
   Refresh as RefreshIcon,
   Assignment as AttendanceIcon,
   CheckCircle as CloseIcon,
+  RateReview as FeedbackIcon,
+  ListAlt as ApplicationsIcon,
+  Help as HelpIcon,
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import api from "../../services/api";
 import { format } from "date-fns";
 import VolunteerMatchingDialog from "../../components/VolunteerMatchingDialog";
 import AttendanceDialog from "../../components/AttendanceDialog";
+import DetailedVolunteerProfile from "../../components/DetailedVolunteerProfile";
 import { opportunityService } from "../../services/opportunityService";
 
 const ManageOpportunities = () => {
@@ -56,16 +62,43 @@ const ManageOpportunities = () => {
   const [charityData, setCharityData] = useState(null);
   const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
   const [selectedOpportunityForAttendance, setSelectedOpportunityForAttendance] = useState(null);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [selectedOpportunityForFeedback, setSelectedOpportunityForFeedback] = useState(null);
+  const [feedbackList, setFeedbackList] = useState([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [pendingCounts, setPendingCounts] = useState({});
   const [selectedOpportunityForClose, setSelectedOpportunityForClose] = useState(null);
   const [closeNotes, setCloseNotes] = useState("");
   const [closeStatus, setCloseStatus] = useState("completed");
+  const [profileDialog, setProfileDialog] = useState(false);
+  const [selectedVolunteer, setSelectedVolunteer] = useState(null);
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
 
   const fetchOpportunities = async () => {
     setLoading(true);
     try {
       const { data } = await api.get("/opportunities/charity/my-opportunities");
-      setOpportunities(data.data);
+      const opps = data.data || [];
+      setOpportunities(opps);
+      // fetch pending application counts for each opportunity
+      try {
+        const counts = {};
+        await Promise.all(
+          opps.map(async (o) => {
+            try {
+              const resp = await opportunityService.getOpportunityApplications(o.id);
+              const apps = resp.data || [];
+              counts[o.id] = apps.filter(a => a.status === 'pending').length;
+            } catch (e) {
+              counts[o.id] = 0;
+            }
+          })
+        );
+        setPendingCounts(counts);
+      } catch (e) {
+        setPendingCounts({});
+      }
     } catch (error) {
       toast.error("Failed to fetch opportunities");
     } finally {
@@ -151,6 +184,38 @@ const ManageOpportunities = () => {
     setAttendanceDialogOpen(true);
   };
 
+  const handleViewFeedback = async (opportunity) => {
+    if (charityData?.verificationStatus === "pending") {
+      toast.error(
+        "Your charity profile is under review. You cannot make changes until approval is complete."
+      );
+      return;
+    }
+
+    setSelectedOpportunityForFeedback(opportunity);
+    setFeedbackLoading(true);
+    setFeedbackDialogOpen(true);
+
+    try {
+      const { data } = await api.get(`/attendance/opportunity/${opportunity.id}`);
+      const records = data.data || [];
+      const mapped = records.map(r => ({
+        id: r.id,
+        volunteerName: r.volunteer?.user ? `${r.volunteer.user.firstName} ${r.volunteer.user.lastName}` : r.volunteer?.id,
+        volunteerFeedback: r.volunteerFeedback || "",
+        volunteerRating: r.volunteerRating || null,
+        recordedAt: r.createdAt
+      }));
+      setFeedbackList(mapped);
+    } catch (err) {
+      console.error('Failed to fetch feedback', err);
+      toast.error('Failed to fetch volunteer feedback');
+      setFeedbackList([]);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
   const handleCloseOpportunity = (opportunity) => {
     // Block closing while charity is pending review
     if (charityData?.verificationStatus === "pending") {
@@ -215,7 +280,23 @@ const ManageOpportunities = () => {
           mb: 3,
         }}
       >
-        <Typography variant="h4">Manage Opportunities</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Typography variant="h4">Manage Opportunities</Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Tooltip title="View action descriptions">
+              <IconButton
+                size="small"
+                onClick={() => setHelpDialogOpen(true)}
+                sx={{ color: "primary.main" }}
+              >
+                <HelpIcon />
+              </IconButton>
+            </Tooltip>
+            <Typography variant="caption" color="text.secondary" sx={{ cursor: "pointer" }} onClick={() => setHelpDialogOpen(true)}>
+              Action Guide
+            </Typography>
+          </Box>
+        </Box>
         <Box sx={{ display: "flex", gap: 2 }}>
           <Button
             variant="outlined"
@@ -234,6 +315,8 @@ const ManageOpportunities = () => {
           </Button>
         </Box>
       </Box>
+
+
 
       {charityData?.verificationStatus === "pending" && (
         <Alert severity="warning" sx={{ mb: 3 }}>
@@ -255,7 +338,8 @@ const ManageOpportunities = () => {
             startIcon={<AddIcon />}
             onClick={() => navigate("/charity/opportunities/create")}
             disabled={charityData?.verificationStatus !== "approved"}
-          >
+          >Volunteer Dashboard
+
             Create Opportunity
           </Button>
         </Paper>
@@ -339,6 +423,16 @@ const ManageOpportunities = () => {
                           <AttendanceIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
+                      <Tooltip title="View Volunteer Feedback">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleViewFeedback(opp)}
+                          disabled={charityData?.verificationStatus !== "approved"}
+                        >
+                          <FeedbackIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title={`Close Opportunity`}>
                         <IconButton
                           size="small"
@@ -352,6 +446,28 @@ const ManageOpportunities = () => {
                         >
                           <CloseIcon fontSize="small" />
                         </IconButton>
+                      </Tooltip>
+                      <Tooltip title="View Applications">
+                        <Badge
+                          badgeContent={pendingCounts[opp.id] || 0}
+                          color="error"
+                          overlap="circular"
+                          invisible={!(pendingCounts[opp.id] > 0)}
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => navigate(`/charity/applications?opportunityId=${opp.id}`)}
+                              disabled={
+                                charityData?.verificationStatus !== "approved" ||
+                                !(pendingCounts[opp.id] > 0)
+                              }
+                            >
+                              <ApplicationsIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Badge>
                       </Tooltip>
                       <Tooltip title="Edit">
                         <IconButton
@@ -392,6 +508,57 @@ const ManageOpportunities = () => {
       )}
 
       {/* Delete Confirmation Dialog */}
+      {/* Volunteer Feedback Dialog */}
+      <Dialog
+        open={feedbackDialogOpen}
+        onClose={() => setFeedbackDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Volunteer Feedback - {selectedOpportunityForFeedback?.title}</DialogTitle>
+        <DialogContent>
+          {feedbackLoading ? (
+            <Box display="flex" justifyContent="center" p={4}>
+              <CircularProgress />
+            </Box>
+          ) : feedbackList.length === 0 ? (
+            <Alert severity="info">No feedback found for this opportunity.</Alert>
+          ) : (
+            <TableContainer component={Paper} sx={{ mt: 1 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Volunteer</TableCell>
+                    <TableCell>Rating</TableCell>
+                    <TableCell>Feedback</TableCell>
+                    <TableCell>Date</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {feedbackList.map(f => (
+                    <TableRow key={f.id}>
+                      <TableCell>{f.volunteerName}</TableCell>
+                      <TableCell>
+                        {f.volunteerRating ? (
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Rating value={f.volunteerRating} size="small" readOnly />
+                            <Typography variant="caption" color="text.secondary">{f.volunteerRating}/5</Typography>
+                          </Box>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell style={{ maxWidth: 400, whiteSpace: 'pre-wrap' }}>{f.volunteerFeedback || '—'}</TableCell>
+                      <TableCell>{f.recordedAt ? format(new Date(f.recordedAt), 'MMM dd, yyyy') : '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFeedbackDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
@@ -418,6 +585,10 @@ const ManageOpportunities = () => {
         opportunity={selectedOpportunity}
         matchResults={matchResults}
         loading={matchLoading}
+        onViewProfile={(volunteer) => {
+          setSelectedVolunteer(volunteer);
+          setProfileDialog(true);
+        }}
       />
 
       {/* Attendance Dialog */}
@@ -426,6 +597,92 @@ const ManageOpportunities = () => {
         onClose={() => setAttendanceDialogOpen(false)}
         opportunity={selectedOpportunityForAttendance}
       />
+
+      {/* Detailed Volunteer Profile Dialog */}
+      <DetailedVolunteerProfile
+        open={profileDialog}
+        onClose={() => {
+          setProfileDialog(false);
+          setSelectedVolunteer(null);
+        }}
+        volunteer={selectedVolunteer}
+        application={null}
+        onRequestInfo={() => toast.info('Request info feature')}
+        onVettingDecision={() => toast.info('Vetting decision')}
+      />
+
+      {/* Help Dialog - Action Guide */}
+      <Dialog
+        open={helpDialogOpen}
+        onClose={() => setHelpDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Action Guide</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+              <ViewIcon color="primary" sx={{ mt: 0.5, flexShrink: 0 }} />
+              <Box>
+                <Typography variant="body2" fontWeight="600">View Details</Typography>
+                <Typography variant="caption" color="text.secondary">See full opportunity information and details</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+              <PeopleIcon color="primary" sx={{ mt: 0.5, flexShrink: 0 }} />
+              <Box>
+                <Typography variant="body2" fontWeight="600">Find Matches</Typography>
+                <Typography variant="caption" color="text.secondary">Search for volunteers that match this opportunity</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+              <AttendanceIcon color="secondary" sx={{ mt: 0.5, flexShrink: 0 }} />
+              <Box>
+                <Typography variant="body2" fontWeight="600">Track Attendance</Typography>
+                <Typography variant="caption" color="text.secondary">Record volunteer attendance and participation</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+              <FeedbackIcon color="primary" sx={{ mt: 0.5, flexShrink: 0 }} />
+              <Box>
+                <Typography variant="body2" fontWeight="600">View Feedback</Typography>
+                <Typography variant="caption" color="text.secondary">Check volunteer feedback and ratings for this opportunity</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+              <CloseIcon color="success" sx={{ mt: 0.5, flexShrink: 0 }} />
+              <Box>
+                <Typography variant="body2" fontWeight="600">Close Opportunity</Typography>
+                <Typography variant="caption" color="text.secondary">Mark opportunity as completed or cancelled</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+              <ApplicationsIcon color="primary" sx={{ mt: 0.5, flexShrink: 0 }} />
+              <Box>
+                <Typography variant="body2" fontWeight="600">View Applications</Typography>
+                <Typography variant="caption" color="text.secondary">Review pending volunteer applications</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+              <EditIcon color="info" sx={{ mt: 0.5, flexShrink: 0 }} />
+              <Box>
+                <Typography variant="body2" fontWeight="600">Edit</Typography>
+                <Typography variant="caption" color="text.secondary">Modify opportunity details</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+              <DeleteIcon color="error" sx={{ mt: 0.5, flexShrink: 0 }} />
+              <Box>
+                <Typography variant="body2" fontWeight="600">Delete</Typography>
+                <Typography variant="caption" color="text.secondary">Remove this opportunity permanently</Typography>
+              </Box>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setHelpDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Close Opportunity Dialog */}
       <Dialog

@@ -166,6 +166,26 @@ const CharityDashboard = () => {
         </Typography>
       </Alert>
 
+      {stats.pendingApplications > 0 && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 3 }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => navigate('/charity/applications')}
+            >
+              Review Applications
+            </Button>
+          }
+        >
+          <Typography variant="body2">
+            You have {stats.pendingApplications} pending application{stats.pendingApplications > 1 ? 's' : ''}. Please review them on the Applications page.
+          </Typography>
+        </Alert>
+      )}
+
       <Grid container spacing={3}>
         {/* Statistics Cards */}
         <Grid item xs={12} sm={6} md={2.4}>
@@ -204,7 +224,7 @@ const CharityDashboard = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        {/* <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -218,7 +238,7 @@ const CharityDashboard = () => {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+        </Grid> */}
 
         <Grid item xs={12} sm={6} md={2.4}>
           <Card>

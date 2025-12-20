@@ -17,7 +17,8 @@ import {
   CircularProgress,
   Tab,
   Tabs,
-  Stack
+  Stack,
+  Tooltip
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -45,11 +46,11 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
-  const [recommendations, setRecommendations] = useState([]);
   const [applications, setApplications] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
   const [error, setError] = useState(null);
   const [volunteerId, setVolunteerId] = useState(null);
+  const [approvalStatus, setApprovalStatus] = useState(null);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [committedHours, setCommittedHours] = useState('');
@@ -73,20 +74,20 @@ const Dashboard = () => {
         return;
       }
 
-      // First get volunteer profile to get volunteerId
+      // First get volunteer profile to get volunteerId and approvalStatus
       const profileResponse = await volunteerService.getMyProfile();
       const volId = profileResponse.data.id;
+      const status = profileResponse.data.approvalStatus;
       setVolunteerId(volId);
+      setApprovalStatus(status);
 
-      // Fetch stats and recommendations in parallel
-      const [statsResponse, recommendationsResponse, applicationsResponse] = await Promise.all([
+      // Fetch stats and applications in parallel
+      const [statsResponse, applicationsResponse] = await Promise.all([
         volunteerService.getStats(volId),
-        volunteerService.getRecommendations(volId),
         applicationService.getMyApplications()
       ]);
 
       setStats(statsResponse.data);
-      setRecommendations(recommendationsResponse.data || []);
 
       // applicationsResponse.data may be an array or an object { applications: [...] } or { items: [...] }
       const appsPayload = applicationsResponse?.data;
@@ -102,45 +103,9 @@ const Dashboard = () => {
     }
   };
 
-  const getMatchColor = (score) => {
-    if (score >= 70) return 'success';
-    if (score >= 50) return 'info';
-    if (score >= 30) return 'warning';
-    return 'error';
-  };
 
-  const getMatchLabel = (score) => {
-    if (score >= 70) return 'Excellent Match';
-    if (score >= 50) return 'Good Match';
-    if (score >= 30) return 'Fair Match';
-    return 'Poor Match';
-  };
 
-  const getFactorColor = (score) => {
-    if (score >= 18) return 'success';
-    if (score >= 10) return 'info';
-    if (score >= 5) return 'warning';
-    return 'error';
-  };
 
-  const renderFactorIcon = (factor) => {
-    const key = factor.toLowerCase();
-    if (key.includes('skill')) return <BuildIcon fontSize="small" />;
-    if (key.includes('interest') || key.includes('category')) return <FavoriteIcon fontSize="small" />;
-    if (key.includes('location')) return <LocationIcon fontSize="small" />;
-    if (key.includes('availability')) return <ScheduleIcon fontSize="small" />;
-    if (key.includes('experience')) return <WorkIcon fontSize="small" />;
-    if (key.includes('demograph') || key.includes('age')) return <AccessibilityNewIcon fontSize="small" />;
-    return <StarIcon fontSize="small" />;
-  };
-
-  const handleApplyToOpportunity = (opportunityId) => {
-    navigate(`/opportunities/${opportunityId}`);
-  };
-
-  const handleViewOpportunity = (opportunityId) => {
-    navigate(`/opportunities/${opportunityId}`);
-  };
 
   // Confirmation handlers (move confirm participation here)
 
@@ -209,9 +174,23 @@ const Dashboard = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      
       <Typography variant="h4" gutterBottom>
         Volunteer Dashboard
       </Typography>
+      
+      {/* Pending Approval Alert */}
+      {approvalStatus === 'pending' && (
+        <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            Your Approval is Pending
+          </Typography>
+          <Typography variant="body2">
+            Your profile is under review by our moderators. Once approved, you will be able to apply for volunteering opportunities. Please wait for approval notification.
+          </Typography>
+        </Alert>
+      )}
+      
       {/* Additional info requested alert (navigates to applications list) */}
       {showAdditionalInfoAlert && (
         <Alert
@@ -252,76 +231,61 @@ const Dashboard = () => {
       
       {/* Stats Overview */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <PendingIcon color="primary" sx={{ mr: 1 }} />
+                <Box>
+                  <Typography variant="h4">{pendingCount}</Typography>
+                  <Typography variant="body2" color="text.secondary">Pending</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid> */}
+        {/* <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <CheckCircleIcon color="success" sx={{ mr: 1 }} />
+                <Box>
+                  <Typography variant="h4">{confirmedCount}</Typography>
+                  <Typography variant="body2" color="text.secondary">Confirmed</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid> */}
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'primary.50' }}>
-            <PendingIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h6" color="text.secondary">Pending</Typography>
-            <Typography variant="h3" color="primary">{pendingCount}</Typography>
-          </Paper>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <ScheduleIcon color="info" sx={{ mr: 1 }} />
+                <Box>
+                  <Typography variant="h4">{stats?.totalHoursVolunteered || 0}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Hours Volunteered</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.50' }}>
-            <CheckCircleIcon color="success" sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h6" color="text.secondary">Confirmed</Typography>
-            <Typography variant="h3" color="success.main">{confirmedCount}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'info.50' }}>
-            <ScheduleIcon color="info" sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h6" color="text.secondary">Hours Volunteered</Typography>
-            <Typography variant="h3" color="info.main">{stats?.totalHoursVolunteered || 0}</Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'warning.50' }}>
-            <TrendingUpIcon color="warning" sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h6" color="text.secondary">Completed</Typography>
-            <Typography variant="h3" color="warning.main">{completedCount}</Typography>
-          </Paper>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <TrendingUpIcon color="warning" sx={{ mr: 1 }} />
+                <Box>
+                  <Typography variant="h4">{completedCount}</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Opportunities Completed</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 
-      {/* Quick Actions */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s', '&:hover': { boxShadow: 3 } }} 
-                 onClick={() => navigate('/volunteer/attendance')}>
-            <HistoryIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              Attendance History
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              View your participation records and provide feedback
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s', '&:hover': { boxShadow: 3 } }}
-                 onClick={() => navigate('/opportunities')}>
-            <WorkIcon color="secondary" sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              Find Opportunities
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Discover new volunteering opportunities
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s', '&:hover': { boxShadow: 3 } }}
-                 onClick={() => navigate('/volunteer/applications')}>
-            <PendingIcon color="info" sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              My Applications
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Track your application status
-            </Typography>
-          </Paper>
-        </Grid>
-      </Grid>
-
+ 
       {/* My Applications Section */}
       <Paper sx={{ mb: 4 }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -329,7 +293,6 @@ const Dashboard = () => {
             <Tab label={`All Applications (${applications.length})`} />
             <Tab label={`Pending (${pendingCount})`} />
             <Tab label={`Confirmed (${confirmedCount})`} />
-            <Tab label="Past" />
           </Tabs>
         </Box>
         <Box sx={{ p: 3 }}>
@@ -350,15 +313,15 @@ const Dashboard = () => {
               ).map((application) => (
                 <Grid item xs={12} key={application.id}>
                   <Card variant="outlined">
-                    <CardContent>
+                    <CardContent sx={{ p: 2 }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                        <Box flex={1}>
-                          <Typography variant="h6">
-                            {application.opportunity?.title || 'Opportunity'}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                            {application.opportunity?.charity?.organizationName || 'Charity'}
-                          </Typography>
+                                <Box flex={1}>
+                                  <Typography variant="h6">
+                                    {application.opportunity?.title || 'Opportunity'}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                    {application.opportunity?.charity?.organizationName || 'Charity'}
+                                  </Typography>
                           <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
                             <Chip 
                               label={application.status.replace('_', ' ').toUpperCase()} 
@@ -378,7 +341,7 @@ const Dashboard = () => {
                           >
                             View Details
                           </Button>
-                      
+                        
                         </Stack>
                       </Stack>
                     </CardContent>
@@ -390,147 +353,25 @@ const Dashboard = () => {
         </Box>
       </Paper>
 
-      {/* Recommended Opportunities */}
+      {/* Browse Opportunities Section */}
       <Box sx={{ mt: 4 }}>
-        <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <StarIcon color="primary" />
-          Recommended Opportunities for You
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Based on your skills, interests, and location
-        </Typography>
-        
-        {recommendations.length === 0 ? (
-          <Paper sx={{ p: 3 }}>
-            <Typography color="text.secondary" textAlign="center">
-              Complete your profile to get personalized opportunity recommendations.
-            </Typography>
-            <Box textAlign="center" mt={2}>
-              <Button variant="contained" onClick={() => navigate('/volunteer/profile')}>
-                Complete Profile
-              </Button>
-            </Box>
-          </Paper>
-        ) : (
-          <Grid container spacing={3}>
-            {recommendations.map((rec) => {
-              const opportunity = rec.opportunity;
-              const matchScore = rec.matchScore?.score || rec.matchScore || 0;
-              const matchDetails = rec.matchDetails || null;
-              
-              return (
-                <Grid item xs={12} md={6} key={opportunity.id}>
-                  <Card>
-                    <CardContent>
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                        <Typography variant="h6" component="div" sx={{ flex: 1 }}>
-                          {opportunity.title}
-                        </Typography>
-                        <Chip
-                          label={`${matchScore}%`}
-                          color={getMatchColor(matchScore)}
-                          size="small"
-                          sx={{ ml: 1 }}
-                        />
-                      </Stack>
-                      
-                      <Box sx={{ mb: 2 }}>
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={matchScore} 
-                          color={getMatchColor(matchScore)}
-                          sx={{ height: 8, borderRadius: 4 }}
-                        />
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                          {getMatchLabel(matchScore)}
-                        </Typography>
-                      </Box>
-
-                      <Typography variant="body2" color="text.secondary" paragraph>
-                        {opportunity.description?.substring(0, 150)}...
-                      </Typography>
-
-                      <Divider sx={{ my: 2 }} />
-
-                      <Stack spacing={1}>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <LocationIcon fontSize="small" color="action" />
-                          <Typography variant="body2">
-                            {opportunity.locationType === 'virtual' ? 'Virtual' : 
-                             `${opportunity.city}, ${opportunity.state}`}
-                          </Typography>
-                        </Box>
-                        {opportunity.category && (
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <CategoryIcon fontSize="small" color="action" />
-                            <Typography variant="body2">{opportunity.category}</Typography>
-                          </Box>
-                        )}
-                        {opportunity.requiredSkills && opportunity.requiredSkills.length > 0 && (
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">Required Skills:</Typography>
-                            <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap', gap: 0.5 }}>
-                              {opportunity.requiredSkills.slice(0, 3).map((skill, idx) => (
-                                <Chip key={idx} label={skill} size="small" variant="outlined" />
-                              ))}
-                              {opportunity.requiredSkills.length > 3 && (
-                                <Chip label={`+${opportunity.requiredSkills.length - 3}`} size="small" />
-                              )}
-                            </Stack>
-                          </Box>
-                        )}
-                      </Stack>
-
-                      {matchDetails?.factors && matchDetails.factors.length > 0 && (
-                        <Box sx={{ mt: 2 }}>
-                          <Accordion>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                              <Box>
-                                <Typography variant="subtitle2">Match Breakdown</Typography>
-                                <Typography variant="caption" color="text.secondary">{matchDetails.recommendation}</Typography>
-                              </Box>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                              <Stack spacing={1}>
-                                {matchDetails.factors.map((f, idx) => (
-                                  <Box key={idx} display="flex" justifyContent="space-between" alignItems="center">
-                                    <Stack direction="row" spacing={1} alignItems="center">
-                                      {renderFactorIcon(f.factor)}
-                                      <Typography variant="body2">{f.factor}</Typography>
-                                    </Stack>
-                                    <Stack direction="row" spacing={1} alignItems="center">
-                                      <Chip label={`${Math.round(f.score)} pts`} size="small" color={getFactorColor(f.score)} />
-                                      <Typography variant="caption" color="text.secondary">{f.details}</Typography>
-                                    </Stack>
-                                  </Box>
-                                ))}
-                              </Stack>
-                            </AccordionDetails>
-                          </Accordion>
-                        </Box>
-                      )}
-                    </CardContent>
-                    <CardActions>
-                      <Button 
-                        size="small" 
-                        onClick={() => handleViewOpportunity(opportunity.id)}
-                      >
-                        View Details
-                      </Button>
-                      <Button 
-                        size="small" 
-                        variant="contained" 
-                        onClick={() => handleApplyToOpportunity(opportunity.id)}
-                      >
-                        Apply Now
-                      </Button>
-                    </CardActions>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
-        )}
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <StarIcon color="primary" />
+            Find Your Perfect Opportunity
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            Discover meaningful volunteer opportunities tailored to your skills and interests
+          </Typography>
+          <Button 
+            variant="contained" 
+            size="large"
+            onClick={() => navigate('/opportunities')}
+            sx={{ px: 4, py: 1.5 }}
+          >
+            Browse Opportunities
+          </Button>
+        </Paper>
       </Box>
     </Container>
   );

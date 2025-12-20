@@ -1,4 +1,4 @@
-const { Charity, User } = require('../models');
+const { Charity, User, Opportunity, Application } = require('../models');
 const { AppError } = require('../middleware/errorHandler');
 const { Op } = require('sequelize');
 const multer = require('multer');
@@ -210,12 +210,29 @@ exports.getCurrentCharityStats = async (req, res, next) => {
       return next(new AppError('Charity profile not found', 404));
     }
 
+    // Count pending applications for this charity's opportunities
+    const pendingStatuses = ['pending', 'under_review', 'additional_info_requested', 'moderator_review', 'background_check_required'];
+
+    const pendingApplications = await Application.count({
+      include: [
+        {
+          model: Opportunity,
+          as: 'opportunity',
+          where: { charityId: charity.id },
+          attributes: []
+        }
+      ],
+      where: {
+        status: { [Op.in]: pendingStatuses }
+      }
+    });
+
     const stats = {
       totalOpportunities: charity.opportunities?.length || 0,
       activeOpportunities: charity.opportunities?.filter(o => o.status === 'published').length || 0,
       completedOpportunities: charity.opportunities?.filter(o => o.status === 'completed').length || 0,
       totalVolunteers: charity.totalVolunteers || 0,
-      pendingApplications: 0, // TODO: Calculate actual pending applications
+      pendingApplications: pendingApplications || 0,
       rating: charity.rating || 0
     };
 
@@ -425,6 +442,58 @@ exports.getPublicCharityProfile = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: charity
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get charity's average rating from volunteers
+// @route   GET /api/charities/:id/average-rating
+// @access  Public
+exports.getCharityAverageRating = async (req, res, next) => {
+  try {
+    const { Attendance, Opportunity } = require('../models');
+    const charityId = req.params.id;
+
+    // Get all attendance records with volunteer ratings for this charity's opportunities
+    const attendanceRecords = await Attendance.findAll({
+      include: [
+        {
+          model: Opportunity,
+          as: 'opportunity',
+          where: { charityId },
+          attributes: ['id', 'title']
+        }
+      ],
+      where: {
+        volunteerRating: { [Op.ne]: null }
+      },
+      attributes: ['volunteerRating', 'id']
+    });
+
+    if (attendanceRecords.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          averageRating: 0,
+          totalRatings: 0,
+          message: 'No ratings available'
+        }
+      });
+    }
+
+    // Calculate average rating
+    const totalRating = attendanceRecords.reduce((sum, record) => sum + record.volunteerRating, 0);
+    const averageRating = (totalRating / attendanceRecords.length).toFixed(2);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        averageRating: parseFloat(averageRating),
+        totalRatings: attendanceRecords.length,
+        individualRatings: attendanceRecords.map(record => record.volunteerRating)
+      }
     });
   } catch (error) {
     next(error);

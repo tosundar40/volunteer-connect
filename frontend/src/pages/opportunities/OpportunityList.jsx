@@ -1,42 +1,100 @@
-import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { useNavigate, Link } from "react-router-dom";
 import {
-  Container, Typography, Grid, Card, CardContent, CardActions,
-  Button, TextField, Box, Chip, Pagination, InputLabel, FormControl,
-  Select, MenuItem, IconButton, Dialog, DialogTitle, DialogContent,
-  DialogActions, CircularProgress, Alert, Divider, Skeleton,
-  CardMedia, Stack, FormHelperText, Paper, OutlinedInput, Tooltip,
-  Accordion, AccordionSummary, AccordionDetails
-} from '@mui/material';
+  Container,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Button,
+  TextField,
+  Box,
+  Chip,
+  Pagination,
+  InputLabel,
+  FormControl,
+  Select,
+  MenuItem,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
+  Alert,
+  Divider,
+  Skeleton,
+  CardMedia,
+  Stack,
+  FormHelperText,
+  Paper,
+  OutlinedInput,
+  Tooltip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+} from "@mui/material";
 import {
-  Search as SearchIcon, FilterList as FilterIcon,
-  LocationOn as LocationIcon, CalendarToday as DateIcon,
-  People as PeopleIcon, Schedule as TimeIcon,
-  Work as WorkIcon, Clear as ClearIcon, VolunteerActivism as ApplyIcon,
-  ExpandMore as ExpandMoreIcon, TrendingUp as TrendingIcon
-  , Visibility as VisibilityIcon
-} from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { format } from 'date-fns';
-import { toast } from 'react-toastify';
-import { opportunityService } from '../../services/opportunityService';
-import { applicationService } from '../../services/applicationService';
-import volunteerService from '../../services/volunteerService';
+  Search as SearchIcon,
+  FilterList as FilterIcon,
+  LocationOn as LocationIcon,
+  CalendarToday as DateIcon,
+  People as PeopleIcon,
+  Schedule as TimeIcon,
+  Work as WorkIcon,
+  Clear as ClearIcon,
+  VolunteerActivism as ApplyIcon,
+  ExpandMore as ExpandMoreIcon,
+  TrendingUp as TrendingIcon,
+  Visibility as VisibilityIcon,
+  Star as StarIcon,
+} from "@mui/icons-material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { format } from "date-fns";
+import { toast } from "react-toastify";
+import { opportunityService } from "../../services/opportunityService";
+import { applicationService } from "../../services/applicationService";
+import volunteerService from "../../services/volunteerService";
 
 const interestCategories = [
-  'Education', 'Healthcare', 'Environment', 'Animal Welfare',
-  'Community Development', 'Arts & Culture', 'Sports & Recreation',
-  'Elderly Care', 'Youth Development', 'Homelessness', 'Disaster Relief',
-  'Human Rights', 'Mental Health', 'Food Security', 'Technology', 'Other'
+  "Education",
+  "Healthcare",
+  "Environment",
+  "Animal Welfare",
+  "Community Development",
+  "Arts & Culture",
+  "Sports & Recreation",
+  "Elderly Care",
+  "Youth Development",
+  "Homelessness",
+  "Disaster Relief",
+  "Human Rights",
+  "Mental Health",
+  "Food Security",
+  "Technology",
+  "Other",
 ];
 
 const commonSkills = [
-  'Teaching', 'Mentoring', 'Tutoring', 'Data Analysis', 'Web Development',
-  'Writing', 'Event Planning', 'Marketing', 'Translation', 'Photography',
-  'Graphic Design', 'Fundraising', 'Community Outreach', 'Leadership', 'Problem Solving'
+  "Teaching",
+  "Mentoring",
+  "Tutoring",
+  "Data Analysis",
+  "Web Development",
+  "Writing",
+  "Event Planning",
+  "Marketing",
+  "Translation",
+  "Photography",
+  "Graphic Design",
+  "Fundraising",
+  "Community Outreach",
+  "Leadership",
+  "Problem Solving",
 ];
 
 const OpportunityList = () => {
@@ -48,26 +106,52 @@ const OpportunityList = () => {
     currentPage: 1,
     totalPages: 1,
     totalCount: 0,
-    limit: 12
+    limit: 12,
   });
 
   // Search and filter states
   const [filters, setFilters] = useState({
-    search: '',
-    category: '',
-    locationType: '',
-    city: '',
+    search: "",
+    category: "",
+    locationType: "",
+    city: "",
     startDate: null,
     skills: [],
-    dateRange: '' // today, week, month, custom
+    dateRange: "", // today, week, month, custom
   });
   const [showFilters, setShowFilters] = useState(false);
   const [applying, setApplying] = useState(null);
   const [applicationDialog, setApplicationDialog] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState(null);
-  const [applicationMessage, setApplicationMessage] = useState('');
+  const [applicationMessage, setApplicationMessage] = useState("");
   const [appliedOpportunityIds, setAppliedOpportunityIds] = useState(new Set());
   const [approvalStatus, setApprovalStatus] = useState(null);
+  const [recommendedOpportunities, setRecommendedOpportunities] = useState([]);
+  const [showingRecommendations, setShowingRecommendations] = useState(false);
+
+  // Fetch recommended opportunities for volunteers
+  const fetchRecommendedOpportunities = async () => {
+    if (!isAuthenticated || user?.role !== "volunteer") return;
+    
+    try {
+      const profileResponse = await volunteerService.getMyProfile();
+      const volId = profileResponse.data.id;
+      const response = await volunteerService.getRecommendations(volId);
+      const recommendations = response.data || [];
+      
+      // Extract opportunities from recommendations
+      const oppList = recommendations.map(rec => ({
+        ...rec.opportunity,
+        matchScore: rec.matchScore?.score || rec.matchScore || 0,
+        matchDetails: rec.matchDetails
+      }));
+      
+      setRecommendedOpportunities(oppList);
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      setRecommendedOpportunities([]);
+    }
+  };
 
   // Fetch opportunities
   const fetchOpportunities = async (page = 1, appliedFilters = filters) => {
@@ -80,20 +164,27 @@ const OpportunityList = () => {
         category: appliedFilters.category,
         locationType: appliedFilters.locationType,
         city: appliedFilters.city,
-        skills: appliedFilters.skills?.length > 0 ? appliedFilters.skills[0] : ''
+        skills:
+          appliedFilters.skills?.length > 0 ? appliedFilters.skills[0] : "",
       };
-      
+
       // Format date for API
       if (appliedFilters.startDate) {
-        params.startDate = format(appliedFilters.startDate, 'yyyy-MM-dd');
+        params.startDate = format(appliedFilters.startDate, "yyyy-MM-dd");
       }
 
       const response = await opportunityService.getOpportunities(params);
       setOpportunities(response.data);
       setPagination(response.pagination);
+      
+      // Determine if showing recommendations or search results
+      const hasActiveFilters = appliedFilters.search || appliedFilters.category || 
+        appliedFilters.locationType || appliedFilters.city || appliedFilters.startDate || 
+        appliedFilters.skills?.length > 0;
+      setShowingRecommendations(!hasActiveFilters && isAuthenticated && user?.role === "volunteer");
     } catch (error) {
-      toast.error('Failed to load opportunities');
-      console.error('Error fetching opportunities:', error);
+      toast.error("Failed to load opportunities");
+      console.error("Error fetching opportunities:", error);
     } finally {
       setLoading(false);
     }
@@ -101,20 +192,20 @@ const OpportunityList = () => {
 
   // Handle search
   const handleSearch = () => {
-    setPagination(prev => ({ ...prev, currentPage: 1 }));
+    setPagination((prev) => ({ ...prev, currentPage: 1 }));
     fetchOpportunities(1, filters);
   };
 
   // Clear filters
   const clearFilters = () => {
     const clearedFilters = {
-      search: '',
-      category: '',
-      locationType: '',
-      city: '',
+      search: "",
+      category: "",
+      locationType: "",
+      city: "",
       startDate: null,
       skills: [],
-      dateRange: ''
+      dateRange: "",
     };
     setFilters(clearedFilters);
     fetchOpportunities(1, clearedFilters);
@@ -125,18 +216,18 @@ const OpportunityList = () => {
     let newDate = null;
     const today = new Date();
 
-    if (range === 'today') {
+    if (range === "today") {
       newDate = today;
-    } else if (range === 'week') {
+    } else if (range === "week") {
       newDate = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-    } else if (range === 'month') {
+    } else if (range === "month") {
       newDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
     }
 
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       startDate: newDate,
-      dateRange: range
+      dateRange: range,
     }));
   };
 
@@ -148,18 +239,20 @@ const OpportunityList = () => {
   // Handle application
   const handleApply = async (opportunity) => {
     if (!isAuthenticated) {
-      toast.info('Please log in to apply for opportunities');
-      navigate('/login');
+      toast.info("Please log in to apply for opportunities");
+      navigate("/login");
       return;
     }
 
-    if (user?.role !== 'volunteer') {
-      toast.error('Only volunteers can apply for opportunities');
+    if (user?.role !== "volunteer") {
+      toast.error("Only volunteers can apply for opportunities");
       return;
     }
 
-    if (approvalStatus === 'pending') {
-      toast.info('Your account approval is pending with a moderator — you cannot apply yet.');
+    if (approvalStatus === "pending") {
+      toast.info(
+        "Your account approval is pending with a moderator — you cannot apply yet."
+      );
       return;
     }
 
@@ -173,14 +266,15 @@ const OpportunityList = () => {
       setApplying(selectedOpportunity.id);
       await applicationService.createApplication({
         opportunityId: selectedOpportunity.id,
-        applicationMessage: applicationMessage.trim() || 'I am interested in this opportunity.'
+        applicationMessage:
+          applicationMessage.trim() || "I am interested in this opportunity.",
       });
-      
-      toast.success('Application submitted successfully!');
+
+      toast.success("Application submitted successfully!");
       setApplicationDialog(false);
-      setApplicationMessage('');
+      setApplicationMessage("");
       setSelectedOpportunity(null);
-      
+
       // Refresh opportunities to update application counts
       fetchOpportunities(pagination.currentPage);
       // mark this opportunity as applied for the current user
@@ -190,7 +284,9 @@ const OpportunityList = () => {
         setAppliedOpportunityIds(newSet);
       } catch (e) {}
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to submit application');
+      toast.error(
+        error.response?.data?.error || "Failed to submit application"
+      );
     } finally {
       setApplying(null);
     }
@@ -199,101 +295,169 @@ const OpportunityList = () => {
   // Initial load
   useEffect(() => {
     fetchOpportunities();
-  }, []);
+    if (isAuthenticated && user?.role === "volunteer") {
+      fetchRecommendedOpportunities();
+    }
+  }, [isAuthenticated, user]);
 
   // Load current volunteer's applications to identify already-applied opportunities
   useEffect(() => {
     const loadMyApplications = async () => {
-      if (!isAuthenticated || user?.role !== 'volunteer') return;
+      if (!isAuthenticated || user?.role !== "volunteer") return;
       try {
         const res = await applicationService.getMyApplications();
-        const apps = Array.isArray(res) ? res : (res.data || res);
+        const apps = Array.isArray(res) ? res : res.data || res;
         const ids = new Set();
-        (apps || []).forEach(app => {
+        (apps || []).forEach((app) => {
           const oppId = app.opportunityId || app.opportunity?.id;
           if (oppId) ids.add(oppId);
         });
         setAppliedOpportunityIds(ids);
       } catch (err) {
-        console.error('Failed to load my applications:', err);
+        console.error("Failed to load my applications:", err);
       }
     };
 
     loadMyApplications();
     // also fetch volunteer profile to get approvalStatus
     const fetchMyProfile = async () => {
-      if (!isAuthenticated || user?.role !== 'volunteer') return;
+      if (!isAuthenticated || user?.role !== "volunteer") return;
       try {
         const res = await volunteerService.getMyProfile();
         setApprovalStatus(res.data.approvalStatus || null);
       } catch (err) {
-        console.error('Failed to fetch volunteer profile:', err);
+        console.error("Failed to fetch volunteer profile:", err);
       }
     };
 
     fetchMyProfile();
   }, [isAuthenticated, user]);
 
+  // Get match color helper
+  const getMatchColor = (score) => {
+    if (score >= 70) return 'success';
+    if (score >= 50) return 'info';
+    if (score >= 30) return 'warning';
+    return 'error';
+  };
+
   // Opportunity card component
-  const OpportunityCard = ({ opportunity }) => (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease', '&:hover': { boxShadow: 4, transform: 'translateY(-4px)' } }}>
+  const OpportunityCard = ({ opportunity, showMatchScore = false }) => (
+    <Card
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        transition: "all 0.3s ease",
+        "&:hover": { boxShadow: 4, transform: "translateY(-4px)" },
+      }}
+    >
       <CardContent sx={{ flexGrow: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            mb: 1,
+          }}
+        >
           <Typography variant="h6" component="h2" sx={{ flex: 1 }}>
             {opportunity.title}
           </Typography>
-          {opportunity.volunteersConfirmed >= opportunity.numberOfVolunteers && (
-            <Tooltip title="This opportunity is full">
-              <Chip label="Full" size="small" color="default" variant="outlined" />
-            </Tooltip>
-          )}
+          <Stack direction="row" spacing={1}>
+            {showMatchScore && opportunity.matchScore && (
+              <Chip
+                label={`${opportunity.matchScore}% Match`}
+                size="small"
+                color={getMatchColor(opportunity.matchScore)}
+                icon={<StarIcon />}
+              />
+            )}
+            {opportunity.volunteersConfirmed >=
+              opportunity.numberOfVolunteers && (
+              <Tooltip title="This opportunity is full">
+                <Chip
+                  label="Full"
+                  size="small"
+                  color="default"
+                  variant="outlined"
+                />
+              </Tooltip>
+            )}
+          </Stack>
         </Box>
 
         {/* Charity Name */}
         {opportunity.charity?.user && (
-          <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 500 }}>
-            {opportunity.charity.user.firstName} {opportunity.charity.user.lastName}
+          <Typography
+            variant="body2"
+            color="primary"
+            sx={{ mb: 1, fontWeight: 500 }}
+          >
+            {opportunity.charity.user.firstName}{" "}
+            {opportunity.charity.user.lastName}
           </Typography>
         )}
-        
+
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {opportunity.description?.length > 150 
-            ? `${opportunity.description.substring(0, 150)}...` 
+          {opportunity.description?.length > 150
+            ? `${opportunity.description.substring(0, 150)}...`
             : opportunity.description}
         </Typography>
 
         <Stack spacing={1} sx={{ mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <LocationIcon fontSize="small" color="action" />
             <Typography variant="body2">
-              {opportunity.locationType === 'virtual' ? '💻 Virtual' : `📍 ${opportunity.city}, ${opportunity.state}`}
+              {opportunity.locationType === "virtual"
+                ? "💻 Virtual"
+                : `📍 ${opportunity.city}, ${opportunity.state}`}
             </Typography>
           </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <DateIcon fontSize="small" color="action" />
             <Typography variant="body2">
-              {format(new Date(opportunity.startDate), 'MMM dd, yyyy')}
+              {format(new Date(opportunity.startDate), "MMM dd, yyyy")}
             </Typography>
           </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <PeopleIcon fontSize="small" color="action" />
             <Typography variant="body2">
-              {opportunity.volunteersConfirmed}/{opportunity.numberOfVolunteers} volunteers
+              {opportunity.volunteersConfirmed}/{opportunity.numberOfVolunteers}{" "}
+              volunteers
             </Typography>
             <Box sx={{ flex: 1 }}>
-              <Box sx={{ height: 4, bgcolor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-                <Box sx={{ height: '100%', bgcolor: 'primary.main', width: `${(opportunity.volunteersConfirmed / opportunity.numberOfVolunteers) * 100}%` }} />
+              <Box
+                sx={{
+                  height: 4,
+                  bgcolor: "divider",
+                  borderRadius: 2,
+                  overflow: "hidden",
+                }}
+              >
+                <Box
+                  sx={{
+                    height: "100%",
+                    bgcolor: "primary.main",
+                    width: `${
+                      (opportunity.volunteersConfirmed /
+                        opportunity.numberOfVolunteers) *
+                      100
+                    }%`,
+                  }}
+                />
               </Box>
             </Box>
           </Box>
 
           {/* Views count */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
             <VisibilityIcon fontSize="small" color="action" />
             <Typography variant="body2">
-              {typeof opportunity.views === 'number' ? opportunity.views : 0} views
+              {typeof opportunity.views === "number" ? opportunity.views : 0}{" "}
+              views
             </Typography>
           </Box>
         </Stack>
@@ -301,38 +465,42 @@ const OpportunityList = () => {
         {/* Category Badge */}
         {opportunity.category && (
           <Box sx={{ mb: 1 }}>
-            <Chip 
-              label={opportunity.category} 
-              size="small" 
-              color="primary" 
+            <Chip
+              label={opportunity.category}
+              size="small"
+              color="primary"
               variant="filled"
               icon={<TrendingIcon />}
             />
           </Box>
         )}
-        
+
         {/* Required Skills Display */}
         {opportunity.requiredSkills?.length > 0 && (
           <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 0.5, fontWeight: 600 }}
+            >
               Required Skills:
             </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
               {opportunity.requiredSkills.slice(0, 4).map((skill, idx) => (
-                <Chip 
+                <Chip
                   key={idx}
-                  label={skill} 
+                  label={skill}
                   size="small"
                   variant="outlined"
-                  sx={{ fontSize: '0.7rem' }}
+                  sx={{ fontSize: "0.7rem" }}
                 />
               ))}
               {opportunity.requiredSkills.length > 4 && (
-                <Chip 
+                <Chip
                   label={`+${opportunity.requiredSkills.length - 4} more`}
                   size="small"
                   variant="outlined"
-                  sx={{ fontSize: '0.7rem' }}
+                  sx={{ fontSize: "0.7rem" }}
                 />
               )}
             </Box>
@@ -341,20 +509,25 @@ const OpportunityList = () => {
       </CardContent>
 
       <CardActions sx={{ pt: 0 }}>
-        <Button 
-          size="small" 
-          component={Link} 
+        <Button
+          size="small"
+          component={Link}
           to={`/opportunities/${opportunity.id}`}
           variant="outlined"
         >
           View Details
         </Button>
-        
-        {isAuthenticated && user?.role === 'volunteer' && (
-          <Tooltip title={
-            appliedOpportunityIds.has(opportunity.id) ? 'You have already applied for this one' :
-            (approvalStatus === 'pending' ? 'Account approval pending — cannot apply' : '')
-          }>
+
+        {isAuthenticated && user?.role === "volunteer" && (
+          <Tooltip
+            title={
+              appliedOpportunityIds.has(opportunity.id)
+                ? "You have already applied for this one"
+                : approvalStatus === "pending"
+                ? "Account approval pending — cannot apply"
+                : ""
+            }
+          >
             <span>
               <Button
                 size="small"
@@ -363,12 +536,19 @@ const OpportunityList = () => {
                 onClick={() => handleApply(opportunity)}
                 disabled={
                   applying === opportunity.id ||
-                  opportunity.volunteersConfirmed >= opportunity.numberOfVolunteers ||
+                  opportunity.volunteersConfirmed >=
+                    opportunity.numberOfVolunteers ||
                   appliedOpportunityIds.has(opportunity.id) ||
-                  approvalStatus === 'pending'
+                  approvalStatus === "pending"
                 }
               >
-                {appliedOpportunityIds.has(opportunity.id) ? 'Applied' : (applying === opportunity.id ? 'Applying...' : (approvalStatus === 'pending' ? 'Pending Approval' : 'Apply'))}
+                {appliedOpportunityIds.has(opportunity.id)
+                  ? "Applied"
+                  : applying === opportunity.id
+                  ? "Applying..."
+                  : approvalStatus === "pending"
+                  ? "Pending Approval"
+                  : "Apply"}
               </Button>
             </span>
           </Tooltip>
@@ -404,9 +584,10 @@ const OpportunityList = () => {
         <Typography variant="h4" gutterBottom>
           Browse Opportunities
         </Typography>
-        
+
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Discover meaningful volunteer opportunities that match your interests and skills.
+          Discover meaningful volunteer opportunities that match your interests
+          and skills.
         </Typography>
 
         {/* Search and Filter Section */}
@@ -418,17 +599,27 @@ const OpportunityList = () => {
                 fullWidth
                 placeholder="Search opportunities by title or description..."
                 value={filters.search}
-                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, search: e.target.value }))
+                }
+                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
                 InputProps={{
-                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
+                  startAdornment: (
+                    <SearchIcon sx={{ mr: 1, color: "action.active" }} />
+                  ),
                 }}
               />
             </Grid>
-            
+
             {/* Action Buttons */}
             <Grid item xs={12} md={6}>
-              <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  justifyContent: { xs: "flex-start", md: "flex-end" },
+                }}
+              >
                 <Button
                   variant="contained"
                   onClick={handleSearch}
@@ -443,7 +634,12 @@ const OpportunityList = () => {
                 >
                   Filters
                 </Button>
-                {(filters.search || filters.category || filters.locationType || filters.city || filters.startDate || filters.skills?.length > 0) && (
+                {(filters.search ||
+                  filters.category ||
+                  filters.locationType ||
+                  filters.city ||
+                  filters.startDate ||
+                  filters.skills?.length > 0) && (
                   <Button
                     variant="text"
                     onClick={clearFilters}
@@ -468,23 +664,35 @@ const OpportunityList = () => {
                     <InputLabel>Cause / Category</InputLabel>
                     <Select
                       value={filters.category}
-                      onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          category: e.target.value,
+                        }))
+                      }
                       label="Cause / Category"
                     >
                       <MenuItem value="">All Categories</MenuItem>
                       {interestCategories.map((category) => (
-                        <MenuItem key={category} value={category}>{category}</MenuItem>
+                        <MenuItem key={category} value={category}>
+                          {category}
+                        </MenuItem>
                       ))}
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6} md={3}>
                   <FormControl fullWidth>
                     <InputLabel>Location Type</InputLabel>
                     <Select
                       value={filters.locationType}
-                      onChange={(e) => setFilters(prev => ({ ...prev, locationType: e.target.value }))}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          locationType: e.target.value,
+                        }))
+                      }
                       label="Location Type"
                     >
                       <MenuItem value="">All Types</MenuItem>
@@ -494,35 +702,47 @@ const OpportunityList = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     fullWidth
                     label="City"
                     value={filters.city}
-                    onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
+                    onChange={(e) =>
+                      setFilters((prev) => ({ ...prev, city: e.target.value }))
+                    }
                     placeholder="Enter city name"
                     InputProps={{
-                      startAdornment: <LocationIcon sx={{ mr: 1, color: 'action.active' }} />
+                      startAdornment: (
+                        <LocationIcon sx={{ mr: 1, color: "action.active" }} />
+                      ),
                     }}
                   />
                 </Grid>
 
                 {/* Date Filters with Shortcuts */}
                 <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Start Date</Typography>
-                  <Stack direction="row" spacing={0.5} sx={{ mb: 1, flexWrap: 'wrap' }}>
-                    {['today', 'week', 'month'].map((range) => (
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    Start Date
+                  </Typography>
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    sx={{ mb: 1, flexWrap: "wrap" }}
+                  >
+                    {["today", "week", "month"].map((range) => (
                       <Button
                         key={range}
                         size="small"
-                        variant={filters.dateRange === range ? 'contained' : 'outlined'}
+                        variant={
+                          filters.dateRange === range ? "contained" : "outlined"
+                        }
                         onClick={() => handleDateRange(range)}
-                        sx={{ 
-                          textTransform: 'capitalize',
-                          fontSize: '0.75rem',
+                        sx={{
+                          textTransform: "capitalize",
+                          fontSize: "0.75rem",
                           px: 1,
-                          py: 0.5
+                          py: 0.5,
                         }}
                       >
                         {range}
@@ -532,8 +752,16 @@ const OpportunityList = () => {
                   <DatePicker
                     label="Custom Date"
                     value={filters.startDate}
-                    onChange={(newValue) => setFilters(prev => ({ ...prev, startDate: newValue, dateRange: 'custom' }))}
-                    renderInput={(params) => <TextField fullWidth {...params} size="small" />}
+                    onChange={(newValue) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        startDate: newValue,
+                        dateRange: "custom",
+                      }))
+                    }
+                    renderInput={(params) => (
+                      <TextField fullWidth {...params} size="small" />
+                    )}
                   />
                 </Grid>
 
@@ -543,35 +771,58 @@ const OpportunityList = () => {
 
                 {/* Skills Filter */}
                 <Grid item xs={12}>
-                  <Typography variant="subtitle2" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      mb: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
+                  >
                     <WorkIcon fontSize="small" /> Required Skills (Optional)
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block", mb: 1 }}
+                  >
                     Select skills you have or want to develop:
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                     {commonSkills.map((skill) => (
                       <Chip
                         key={skill}
                         label={skill}
                         onClick={() => {
-                          setFilters(prev => {
+                          setFilters((prev) => {
                             const newSkills = prev.skills.includes(skill)
-                              ? prev.skills.filter(s => s !== skill)
+                              ? prev.skills.filter((s) => s !== skill)
                               : [...prev.skills, skill];
                             return { ...prev, skills: newSkills };
                           });
                         }}
-                        variant={filters.skills.includes(skill) ? 'filled' : 'outlined'}
-                        color={filters.skills.includes(skill) ? 'primary' : 'default'}
-                        sx={{ cursor: 'pointer' }}
+                        variant={
+                          filters.skills.includes(skill) ? "filled" : "outlined"
+                        }
+                        color={
+                          filters.skills.includes(skill) ? "primary" : "default"
+                        }
+                        sx={{ cursor: "pointer" }}
                       />
                     ))}
                   </Box>
                   {filters.skills.length > 0 && (
-                    <Box sx={{ mt: 1, p: 1, bgcolor: 'info.light', borderRadius: 1 }}>
+                    <Box
+                      sx={{
+                        mt: 1,
+                        p: 1,
+                        bgcolor: "info.light",
+                        borderRadius: 1,
+                      }}
+                    >
                       <Typography variant="caption">
-                        Selected: {filters.skills.join(', ')}
+                        Selected: {filters.skills.join(", ")}
                       </Typography>
                     </Box>
                   )}
@@ -584,17 +835,54 @@ const OpportunityList = () => {
         {/* Results Summary */}
         {!loading && (
           <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              {pagination.totalCount} opportunities found
-              {filters.search && ` for "${filters.search}"`}
-            </Typography>
+            {showingRecommendations && recommendedOpportunities.length > 0 ? (
+              <Box>
+                <Typography variant="h6" color="primary" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <StarIcon /> Recommended Opportunities for You
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {recommendedOpportunities.length} personalized recommendations based on your profile
+                </Typography>
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                {pagination.totalCount} opportunities found
+                {filters.search && ` for "${filters.search}"`}
+              </Typography>
+            )}
           </Box>
         )}
 
         {/* Opportunities Grid */}
         {loading ? (
           <LoadingSkeleton />
+        ) : showingRecommendations && recommendedOpportunities.length > 0 ? (
+          /* Show Recommended Opportunities */
+          <>
+            <Grid container spacing={3}>
+              {recommendedOpportunities.map((opportunity) => (
+                <Grid item xs={12} sm={6} md={4} key={opportunity.id}>
+                  <OpportunityCard opportunity={opportunity} showMatchScore={true} />
+                </Grid>
+              ))}
+            </Grid>
+            
+            {/* Show All Opportunities Button */}
+            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setFilters(prev => ({ ...prev, search: " " }));
+                  handleSearch();
+                }}
+                sx={{ px: 4 }}
+              >
+                Browse All Opportunities
+              </Button>
+            </Box>
+          </>
         ) : opportunities.length > 0 ? (
+          /* Show Search Results */
           <>
             <Grid container spacing={3}>
               {opportunities.map((opportunity) => (
@@ -606,7 +894,7 @@ const OpportunityList = () => {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+              <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
                 <Pagination
                   count={pagination.totalPages}
                   page={pagination.currentPage}
@@ -620,23 +908,23 @@ const OpportunityList = () => {
           </>
         ) : (
           <Alert severity="info" sx={{ mt: 2 }}>
-            No opportunities found matching your criteria. Try adjusting your search filters.
+            No opportunities found matching your criteria. Try adjusting your
+            search filters.
           </Alert>
         )}
 
         {/* Application Dialog */}
-        <Dialog 
-          open={applicationDialog} 
+        <Dialog
+          open={applicationDialog}
           onClose={() => setApplicationDialog(false)}
           maxWidth="sm"
           fullWidth
         >
-          <DialogTitle>
-            Apply for: {selectedOpportunity?.title}
-          </DialogTitle>
+          <DialogTitle>Apply for: {selectedOpportunity?.title}</DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Tell the charity why you're interested in this opportunity and what you can contribute.
+              Tell the charity why you're interested in this opportunity and
+              what you can contribute.
             </Typography>
             <TextField
               fullWidth
@@ -649,16 +937,14 @@ const OpportunityList = () => {
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setApplicationDialog(false)}>
-              Cancel
-            </Button>
+            <Button onClick={() => setApplicationDialog(false)}>Cancel</Button>
             <Button
               onClick={submitApplication}
               variant="contained"
               disabled={applying}
               startIcon={applying && <CircularProgress size={16} />}
             >
-              {applying ? 'Submitting...' : 'Submit Application'}
+              {applying ? "Submitting..." : "Submit Application"}
             </Button>
           </DialogActions>
         </Dialog>

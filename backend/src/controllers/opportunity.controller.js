@@ -3,6 +3,8 @@ const { AppError } = require('../middleware/errorHandler');
 const { Op } = require('sequelize');
 const asyncHandler = require('express-async-handler');
 
+const recentViews = new Map();
+
 // @desc    Get all opportunities
 // @route   GET /api/opportunities
 // @access  Public
@@ -138,8 +140,16 @@ exports.getOpportunity = async (req, res, next) => {
       return next(new AppError('Opportunity not found', 404));
     }
 
-    // Increment views
-    await opportunity.increment('views');
+    // Increment views but avoid double-counting rapid repeated requests from same IP
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    const key = `${opportunity.id}:${ip}`;
+    const last = recentViews.get(key) || 0;
+    const now = Date.now();
+    const DEBOUNCE_MS = 30 * 1000; // 30 seconds
+    if (now - last > DEBOUNCE_MS) {
+      await opportunity.increment('views');
+      recentViews.set(key, now);
+    }
 
     res.status(200).json({
       success: true,

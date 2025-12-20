@@ -26,6 +26,7 @@ router.put(
 router.get('/:id', validateUUID, charityController.getCharity);
 router.get('/:id/profile', validateUUID, charityController.getPublicCharityProfile);
 router.get('/:id/stats', validateUUID, charityController.getCharityStats);
+router.get('/:id/average-rating', validateUUID, charityController.getCharityAverageRating);
 
 router.post(
   '/',

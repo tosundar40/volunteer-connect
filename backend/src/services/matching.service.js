@@ -285,7 +285,7 @@ exports.getRecommendationsForVolunteer = async (volunteerId, limit = 10) => {
 
     // Get potential opportunities
     const opportunities = await Opportunity.findAll({
-     // where,
+      where,
       include: [{ association: 'charity' }]
     });
 console.log(`Found ${opportunities.length} opportunities for recommendation evaluation.`);

@@ -217,3 +217,48 @@ exports.getRecommendations = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get volunteer's average rating from charities
+// @route   GET /api/volunteers/:id/average-rating
+// @access  Public
+exports.getVolunteerAverageRating = async (req, res, next) => {
+  try {
+    const { Attendance } = require('../models');
+    const volunteerId = req.params.id;
+
+    // Get all attendance records with charity ratings for this volunteer
+    const attendanceRecords = await Attendance.findAll({
+      where: {
+        volunteerId,
+        charityRating: { [Op.ne]: null }
+      },
+      attributes: ['charityRating']
+    });
+
+    if (attendanceRecords.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          averageRating: 0,
+          totalRatings: 0,
+          message: 'No ratings available'
+        }
+      });
+    }
+
+    // Calculate average rating
+    const totalRating = attendanceRecords.reduce((sum, record) => sum + record.charityRating, 0);
+    const averageRating = (totalRating / attendanceRecords.length).toFixed(2);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        averageRating: parseFloat(averageRating),
+        totalRatings: attendanceRecords.length,
+        individualRatings: attendanceRecords.map(record => record.charityRating)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};

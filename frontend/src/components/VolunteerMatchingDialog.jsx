@@ -41,7 +41,8 @@ const VolunteerMatchingDialog = ({
   onClose, 
   opportunity, 
   matchResults, 
-  loading 
+  loading,
+  onViewProfile
 }) => {
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
 
@@ -220,8 +221,15 @@ const VolunteerMatchingDialog = ({
                             variant="determinate" 
                             value={match.matchPercentage} 
                             color={getMatchColor(match.matchScore)}
-                            sx={{ mt: 1 }}
+                            sx={{ mt: 1, mb: 1.5 }}
                           />
+                          <Button 
+                            size="small" 
+                            variant="outlined" 
+                            onClick={() => onViewProfile && onViewProfile(match.volunteer)}
+                          >
+                            View Full Profile
+                          </Button>
                         </Box>
                       </Grid>
                     </Grid>
