@@ -172,9 +172,14 @@ const Navbar = () => {
             icon: <DashboardIcon />,
           },
           {
-            label: "Manage Accounts",
+            label: "Manage Users",
             path: "/moderator/management",
             icon: <AdminPanelSettingsIcon />,
+          },
+          {
+            label: "Opportunities Management",
+            path: "/moderator/opportunities",
+            icon: <WorkIcon />,
           },
           {
             label: "All Opportunities",

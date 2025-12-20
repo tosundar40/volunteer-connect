@@ -927,3 +927,286 @@ exports.activateVolunteer = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get all opportunities for moderator review
+// @route   GET /api/moderator/opportunities
+// @access  Private (Moderator role)
+exports.getAllOpportunities = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'moderator') {
+      return next(new AppError('Access denied. Moderator role required.', 403));
+    }
+
+    const { page = 1, limit = 10, search, status, category } = req.query;
+    const offset = (page - 1) * limit;
+    const where = {};
+
+    // Search functionality
+    if (search) {
+      where[Op.or] = [
+        { title: { [Op.iLike]: `%${search}%` } },
+        { description: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    // Filter by status
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+
+    // Filter by category
+    if (category && category !== 'all') {
+      where.category = category;
+    }
+
+    const { count, rows: opportunities } = await Opportunity.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset,
+      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: Charity,
+          as: 'charity',
+          attributes: ['organizationName', 'id'],
+          include: [
+            {
+              model: User,
+              as: 'user',
+              attributes: ['firstName', 'lastName', 'email']
+            }
+          ]
+        }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      count,
+      total: count,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / limit)
+      },
+      data: opportunities
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Suspend opportunity (moderator)
+// @route   PUT /api/moderator/opportunities/:id/suspend
+// @access  Private (Moderator role)
+exports.suspendOpportunity = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'moderator') {
+      return next(new AppError('Access denied. Moderator role required.', 403));
+    }
+
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || reason.trim().length === 0) {
+      return next(new AppError('Suspension reason is required', 400));
+    }
+
+    const opportunity = await Opportunity.findByPk(id, {
+      include: [
+        {
+          model: Charity,
+          as: 'charity',
+          include: [{ model: User, as: 'user', attributes: ['firstName', 'lastName', 'email'] }]
+        }
+      ]
+    });
+
+    if (!opportunity) {
+      return next(new AppError('Opportunity not found', 404));
+    }
+
+    if (opportunity.status === 'suspended') {
+      return next(new AppError('Opportunity is already suspended', 400));
+    }
+
+    // Store previous status for restoration
+    const previousStatus = opportunity.status;
+
+    await opportunity.update({
+      status: 'suspended',
+      suspendedAt: new Date(),
+      suspendedBy: req.user.id,
+      suspensionReason: reason,
+      previousStatus: previousStatus,
+      moderatedBy: req.user.id,
+      moderatedAt: new Date()
+    });
+
+    // Send notification to charity
+    await require('../services/notification.service').createNotification(
+      opportunity.charity.userId,
+      'opportunity_suspended',
+      'Opportunity Suspended',
+      `Your opportunity "${opportunity.title}" has been suspended. Reason: ${reason}`,
+      { 
+        opportunityId: opportunity.id, 
+        moderatorId: req.user.id,
+        reason 
+      },
+      `/charity/opportunities/${opportunity.id}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Opportunity suspended successfully',
+      data: opportunity
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Resume/unsuspend opportunity (moderator)
+// @route   PUT /api/moderator/opportunities/:id/resume
+// @access  Private (Moderator role)
+exports.resumeOpportunity = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'moderator') {
+      return next(new AppError('Access denied. Moderator role required.', 403));
+    }
+
+    const { id } = req.params;
+    const { notes } = req.body;
+
+    const opportunity = await Opportunity.findByPk(id, {
+      include: [
+        {
+          model: Charity,
+          as: 'charity',
+          include: [{ model: User, as: 'user', attributes: ['firstName', 'lastName', 'email'] }]
+        }
+      ]
+    });
+
+    if (!opportunity) {
+      return next(new AppError('Opportunity not found', 404));
+    }
+
+    if (opportunity.status !== 'suspended') {
+      return next(new AppError('Opportunity is not suspended', 400));
+    }
+
+    // Restore previous status or default to published
+    const restoredStatus = opportunity.previousStatus || 'published';
+
+    await opportunity.update({
+      status: restoredStatus,
+      suspendedAt: null,
+      suspendedBy: null,
+      suspensionReason: null,
+      previousStatus: null,
+      resumedAt: new Date(),
+      resumedBy: req.user.id,
+      moderatedBy: req.user.id,
+      moderatedAt: new Date()
+    });
+
+    // Send notification to charity
+    await require('../services/notification.service').createNotification(
+      opportunity.charity.userId,
+      'opportunity_resumed',
+      'Opportunity Resumed',
+      `Your opportunity "${opportunity.title}" has been resumed and is now ${restoredStatus}.${notes ? ` Notes: ${notes}` : ''}`,
+      { 
+        opportunityId: opportunity.id, 
+        moderatorId: req.user.id,
+        notes 
+      },
+      `/charity/opportunities/${opportunity.id}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Opportunity resumed successfully',
+      data: opportunity
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Delete opportunity (moderator)
+// @route   DELETE /api/moderator/opportunities/:id
+// @access  Private (Moderator role)
+exports.deleteOpportunityAsModerator = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'moderator') {
+      return next(new AppError('Access denied. Moderator role required.', 403));
+    }
+
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const opportunity = await Opportunity.findByPk(id, {
+      include: [
+        {
+          model: Charity,
+          as: 'charity',
+          include: [{ model: User, as: 'user', attributes: ['firstName', 'lastName', 'email'] }]
+        }
+      ]
+    });
+
+    if (!opportunity) {
+      return next(new AppError('Opportunity not found', 404));
+    }
+
+    // Check if opportunity has active applications
+    const activeApplications = await Application.count({
+      where: {
+        opportunityId: opportunity.id,
+        status: { [Op.in]: ['pending', 'under_review', 'approved', 'confirmed'] }
+      }
+    });
+
+    if (activeApplications > 0) {
+      return next(new AppError(
+        `Cannot delete opportunity. There are ${activeApplications} active applications. Please handle them first or suspend the opportunity instead.`,
+        400
+      ));
+    }
+
+    // Store deletion info before removing
+    await opportunity.update({
+      deletedBy: req.user.id,
+      deletionReason: reason || 'Deleted by moderator',
+      moderatedBy: req.user.id,
+      moderatedAt: new Date()
+    });
+
+    await opportunity.destroy();
+
+    // Send notification to charity
+    await require('../services/notification.service').createNotification(
+      opportunity.charity.userId,
+      'opportunity_deleted',
+      'Opportunity Deleted',
+      `Your opportunity "${opportunity.title}" has been deleted by a moderator.${reason ? ` Reason: ${reason}` : ''}`,
+      { 
+        opportunityTitle: opportunity.title,
+        moderatorId: req.user.id,
+        reason 
+      },
+      '/charity/opportunities'
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Opportunity deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};

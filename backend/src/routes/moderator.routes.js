@@ -25,4 +25,10 @@ router.put('/volunteers/:id/reject', protect, authorize('moderator'), validateUU
 router.delete('/volunteers/:id', protect, authorize('moderator'), validateUUID, moderatorController.deleteVolunteer);
 router.put('/volunteers/:id/activate', protect, authorize('moderator'), validateUUID, moderatorController.activateVolunteer);
 
+// Opportunity management
+router.get('/opportunities', protect, authorize('moderator'), moderatorController.getAllOpportunities);
+router.put('/opportunities/:id/suspend', protect, authorize('moderator'), validateUUID, moderatorController.suspendOpportunity);
+router.put('/opportunities/:id/resume', protect, authorize('moderator'), validateUUID, moderatorController.resumeOpportunity);
+router.delete('/opportunities/:id', protect, authorize('moderator'), validateUUID, moderatorController.deleteOpportunityAsModerator);
+
 module.exports = router;

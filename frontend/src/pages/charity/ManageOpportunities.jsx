@@ -395,6 +395,7 @@ const ManageOpportunities = () => {
                         <IconButton
                           size="small"
                           onClick={() => navigate(`/opportunities/${opp.id}`)}
+                          disabled={opp.status === 'suspended'}
                         >
                           <ViewIcon fontSize="small" />
                         </IconButton>
@@ -405,7 +406,7 @@ const ManageOpportunities = () => {
                           color="primary"
                           onClick={() => handleFindMatches(opp)}
                           disabled={
-                            charityData?.verificationStatus !== "approved"
+                            charityData?.verificationStatus !== "approved" || opp.status === 'suspended'
                           }
                         >
                           <PeopleIcon fontSize="small" />
@@ -417,7 +418,7 @@ const ManageOpportunities = () => {
                           color="secondary"
                           onClick={() => handleAttendance(opp)}
                           disabled={
-                            charityData?.verificationStatus !== "approved"
+                            charityData?.verificationStatus !== "approved" || opp.status === 'suspended'
                           }
                         >
                           <AttendanceIcon fontSize="small" />
@@ -428,7 +429,7 @@ const ManageOpportunities = () => {
                           size="small"
                           color="primary"
                           onClick={() => handleViewFeedback(opp)}
-                          disabled={charityData?.verificationStatus !== "approved"}
+                          disabled={charityData?.verificationStatus !== "approved" || opp.status === 'suspended'}
                         >
                           <FeedbackIcon fontSize="small" />
                         </IconButton>
@@ -441,7 +442,8 @@ const ManageOpportunities = () => {
                           disabled={
                             charityData?.verificationStatus !== "approved" ||
                             opp.status === "completed" ||
-                            opp.status === "cancelled"
+                            opp.status === "cancelled" ||
+                            opp.status === "suspended"
                           }
                         >
                           <CloseIcon fontSize="small" />
@@ -461,7 +463,8 @@ const ManageOpportunities = () => {
                               onClick={() => navigate(`/charity/applications?opportunityId=${opp.id}`)}
                               disabled={
                                 charityData?.verificationStatus !== "approved" ||
-                                !(pendingCounts[opp.id] > 0)
+                                !(pendingCounts[opp.id] > 0) ||
+                                opp.status === 'suspended'
                               }
                             >
                               <ApplicationsIcon fontSize="small" />
@@ -477,7 +480,7 @@ const ManageOpportunities = () => {
                             navigate(`/charity/opportunities/edit/${opp.id}`)
                           }
                           disabled={
-                            charityData?.verificationStatus !== "approved"
+                            charityData?.verificationStatus !== "approved" || opp.status === 'suspended'
                           }
                         >
                           <EditIcon fontSize="small" />
@@ -492,7 +495,7 @@ const ManageOpportunities = () => {
                             setDeleteDialogOpen(true);
                           }}
                           disabled={
-                            charityData?.verificationStatus !== "approved"
+                            charityData?.verificationStatus !== "approved" || opp.status === 'suspended'
                           }
                         >
                           <DeleteIcon fontSize="small" />

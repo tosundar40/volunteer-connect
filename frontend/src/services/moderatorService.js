@@ -87,4 +87,27 @@ export const moderatorService = {
     const response = await api.put(`/moderator/volunteers/${volunteerId}/reject`, data);
     return response.data;
   },
+
+  // Opportunity management
+  getAllOpportunities: async (params = {}) => {
+    const response = await api.get('/moderator/opportunities', { params });
+    return response.data;
+  },
+
+  suspendOpportunity: async (opportunityId, reason) => {
+    const response = await api.put(`/moderator/opportunities/${opportunityId}/suspend`, { reason });
+    return response.data;
+  },
+
+  resumeOpportunity: async (opportunityId, notes) => {
+    const response = await api.put(`/moderator/opportunities/${opportunityId}/resume`, { notes });
+    return response.data;
+  },
+
+  deleteOpportunityAsModerator: async (opportunityId, reason) => {
+    const response = await api.delete(`/moderator/opportunities/${opportunityId}`, { 
+      data: { reason } 
+    });
+    return response.data;
+  },
 };

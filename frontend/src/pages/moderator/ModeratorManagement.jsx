@@ -16,7 +16,7 @@ import {
   Group as GroupIcon, Business as BusinessIcon,
   CheckCircle, Cancel, ListAlt as ListIcon,
   Search as SearchIcon, Clear as ClearIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon, Work as WorkIcon
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
@@ -80,6 +80,24 @@ const ModeratorManagement = () => {
   const [confirmActionType, setConfirmActionType] = useState(''); // 'charity_activate' | 'volunteer_activate'
   const [confirmActionLoading, setConfirmActionLoading] = useState(false);
 
+  // Opportunities management state
+  const [opportunities, setOpportunities] = useState([]);
+  const [opportunityQuery, setOpportunityQuery] = useState('');
+  const [opportunityStatus, setOpportunityStatus] = useState('all');
+  const [opportunityCategory, setOpportunityCategory] = useState('all');
+  const [opportunityPage, setOpportunityPage] = useState(1);
+  const [opportunityPageSize] = useState(10);
+  const [opportunityTotal, setOpportunityTotal] = useState(0);
+
+  // Opportunity moderation dialogs
+  // (suspend/resume removed)
+
+  // Charity opportunities inline viewer
+  const [oppsDialogOpen, setOppsDialogOpen] = useState(false);
+  const [charityOpportunities, setCharityOpportunities] = useState([]);
+  const [selectedCharityForOpportunities, setSelectedCharityForOpportunities] = useState(null);
+  const [loadingCharityOpps, setLoadingCharityOpps] = useState(false);
+
   // Fetch dashboard stats
   const fetchStats = async () => {
     try {
@@ -89,6 +107,8 @@ const ModeratorManagement = () => {
       console.error('Error fetching stats:', error);
     }
   };
+
+  
 
   // Open confirm dialog for reactivate actions
   const handleActivateCharity = (charity) => {
@@ -194,12 +214,43 @@ const ModeratorManagement = () => {
     }
   };
 
+  // Fetch opportunities for moderation
+  const fetchOpportunities = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page: opportunityPage,
+        limit: opportunityPageSize,
+      };
+      if (opportunityQuery) params.search = opportunityQuery;
+      if (opportunityStatus && opportunityStatus !== 'all') params.status = opportunityStatus;
+      if (opportunityCategory && opportunityCategory !== 'all') params.category = opportunityCategory;
+
+      const response = await moderatorService.getAllOpportunities(params);
+      
+      if (response?.data) {
+        setOpportunities(response.data);
+        setOpportunityTotal(response.total || response.count || 0);
+      } else {
+        setOpportunities(response || []);
+        setOpportunityTotal((response && response.length) || 0);
+      }
+    } catch (error) {
+      toast.error('Failed to load opportunities');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
     if (tabValue === 0) {
       fetchCharities();
     } else if (tabValue === 1) {
       fetchVolunteers();
+    } else if (tabValue === 2) {
+      fetchOpportunities();
     }
   }, [tabValue]);
 
@@ -211,6 +262,10 @@ const ModeratorManagement = () => {
   useEffect(() => {
     if (tabValue === 1) fetchVolunteers();
   }, [volPage, volQuery, volStatus, volActiveStatus]);
+
+  useEffect(() => {
+    if (tabValue === 2) fetchOpportunities();
+  }, [opportunityPage, opportunityQuery, opportunityStatus, opportunityCategory]);
 
   // Handle tab change
   const handleTabChange = (event, newValue) => {
@@ -249,6 +304,22 @@ const ModeratorManagement = () => {
     }, 100);
   };
 
+  // Opportunity management handlers
+  const handleOpportunitySearch = () => {
+    setOpportunityPage(1);
+    fetchOpportunities();
+  };
+
+  const handleOpportunityClear = () => {
+    setOpportunityQuery('');
+    setOpportunityStatus('all');
+    setOpportunityCategory('all');
+    setOpportunityPage(1);
+    setTimeout(() => {
+      fetchOpportunities();
+    }, 100);
+  };
+
   // Handle Enter key for search
   const handleCharityKeyPress = (event) => {
     if (event.key === 'Enter') {
@@ -261,6 +332,14 @@ const ModeratorManagement = () => {
       handleVolSearch();
     }
   };
+
+  const handleOpportunityKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      handleOpportunitySearch();
+    }
+  };
+
+  // suspend/resume actions removed
 
   // Handle view details
   const handleViewDetails = async (item, type) => {
@@ -284,6 +363,30 @@ const ModeratorManagement = () => {
     } finally {
       setLoadingDetails(false);
     }
+  };
+
+  // Fetch and show opportunities for a charity inline (dialog)
+  const handleShowCharityOpportunities = async (charity) => {
+    try {
+      setSelectedCharityForOpportunities(charity);
+      setOppsDialogOpen(true);
+      setLoadingCharityOpps(true);
+      const response = await moderatorService.getCharityOpportunities(charity.id, { limit: 20 });
+      if (response?.data) setCharityOpportunities(response.data);
+      else setCharityOpportunities(response || []);
+    } catch (error) {
+      toast.error('Failed to load charity opportunities');
+      console.error(error);
+      setCharityOpportunities([]);
+    } finally {
+      setLoadingCharityOpps(false);
+    }
+  };
+
+  const closeCharityOpportunities = () => {
+    setOppsDialogOpen(false);
+    setCharityOpportunities([]);
+    setSelectedCharityForOpportunities(null);
   };
 
   // Handle delete
@@ -324,6 +427,11 @@ const ModeratorManagement = () => {
         await moderatorService.hardDeleteVolunteer(selectedItem.id);
         toast.success('Volunteer permanently deleted');
         fetchVolunteers();
+      } else if (deleteType === 'opportunity') {
+        // Delete opportunity as moderator
+        await moderatorService.deleteOpportunityAsModerator(selectedItem.id, 'Removed by moderator for policy violation');
+        toast.success('Opportunity deleted successfully');
+        fetchOpportunities();
       }
       
       setDeleteDialog(false);
@@ -364,7 +472,7 @@ const ModeratorManagement = () => {
     }
   };
 
-  
+
   // Confirm approval/rejection
   const confirmApproval = async () => {
     try {
@@ -409,10 +517,18 @@ const ModeratorManagement = () => {
   // Status badge component
   const StatusBadge = ({ status }) => {
     const statusMap = {
+      // User/Charity/Volunteer statuses
       pending: { label: 'Pending', color: 'warning' },
       verified: { label: 'Verified', color: 'success' },
       rejected: { label: 'Rejected', color: 'error' },
-      approved: { label: 'Approved', color: 'success' }
+      approved: { label: 'Approved', color: 'success' },
+      // Opportunity statuses
+      draft: { label: 'Draft', color: 'default' },
+      published: { label: 'Published', color: 'success' },
+      active: { label: 'Active', color: 'info' },
+      completed: { label: 'Completed', color: 'primary' },
+      cancelled: { label: 'Cancelled', color: 'error' },
+      suspended: { label: 'Suspended', color: 'error' }
     };
 
     const statusInfo = statusMap[status] || { label: status, color: 'default' };
@@ -630,6 +746,7 @@ const ModeratorManagement = () => {
                           {charity.organizationName}
                         </Typography>
                       </TableCell>
+                   
                       <TableCell>
                         <Chip label={charity.isActive ? 'Active' : 'Inactive'} color={charity.isActive ? 'success' : 'default'} size="small" />
                       </TableCell>
@@ -653,15 +770,14 @@ const ModeratorManagement = () => {
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="View Opportunities">
-                          <IconButton
-                            size="small"
-                            color="info"
-                            component={Link}
-                            to={`/moderator/charities/${charity.id}/opportunities`}
-                            title="View Opportunities"
-                          >
-                            <ListIcon />
-                          </IconButton>
+                            <IconButton
+                              size="small"
+                              color="info"
+                              onClick={() => handleShowCharityOpportunities(charity)}
+                              title="View Opportunities"
+                            >
+                              <ListIcon />
+                            </IconButton>
                           </Tooltip>
                           {charity.verificationStatus === 'pending' && (
                             <>
@@ -976,6 +1092,16 @@ const ModeratorManagement = () => {
           )}
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
             <Pagination count={Math.max(1, Math.ceil(volTotal / volPageSize))} page={volPage} onChange={(e, p) => setVolPage(p)} color="primary" />
+          </Box>
+        </TabPanel>
+
+        {/* Opportunities Management moved to dedicated page */}
+        <TabPanel value={tabValue} index={2}>
+          <Box sx={{ p: 3 }}>
+            <Typography variant="body1" gutterBottom>
+              Opportunities Management is now available as a dedicated page.
+            </Typography>
+            <Button component={Link} to="/moderator/opportunities" variant="contained">Open Opportunities Management</Button>
           </Box>
         </TabPanel>
       </Paper>
@@ -1416,6 +1542,53 @@ const ModeratorManagement = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Charity Opportunities Dialog (inline grid) */}
+      <Dialog open={oppsDialogOpen} onClose={closeCharityOpportunities} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          Opportunities for {selectedCharityForOpportunities?.organizationName}
+        </DialogTitle>
+        <DialogContent>
+          {loadingCharityOpps ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+          ) : charityOpportunities && charityOpportunities.length > 0 ? (
+            <Grid container spacing={2}>
+              {charityOpportunities.map((opp) => (
+                <Grid item xs={12} sm={6} md={4} key={opp.id}>
+                  <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
+                    <Typography variant="subtitle1">{opp.title}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {opp.description ? `${opp.description.substring(0, 80)}...` : 'No description'}
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                      <Chip label={opp.category || 'N/A'} size="small" />
+                      <Chip label={opp.status} size="small" />
+                    </Stack>
+                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="caption">Volunteers: {opp.volunteersConfirmed || 0}/{opp.numberOfVolunteers || 0}</Typography>
+                      <Stack direction="row" spacing={1}>
+                        <Tooltip title="View details">
+                          <IconButton size="small" component={Link} to={`/opportunities/${opp.id}`}>
+                            <ViewIcon />
+                          </IconButton>
+                        </Tooltip>
+                        
+                      </Stack>
+                    </Box>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography color="text.secondary">No opportunities found for this charity.</Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeCharityOpportunities}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Volunteer Approval/Rejection Dialog */}
       <Dialog 
         open={approvalDialog} 
@@ -1609,6 +1782,8 @@ const ModeratorManagement = () => {
           <Button onClick={() => setVolunteerAppsDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      
     </Container>
   );
 };

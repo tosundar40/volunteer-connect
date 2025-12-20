@@ -34,7 +34,8 @@ import ManageApplications from './pages/charity/ManageApplications';
 // Moderator Pages
 import ModeratorDashboard from './pages/moderator/Dashboard';
 import ModeratorManagement from './pages/moderator/ModeratorManagement';
-import CharityOpportunities from './pages/moderator/CharityOpportunities';
+// CharityOpportunities page removed; charity opportunities are shown inline in moderator management
+import ModeratorOpportunities from './pages/moderator/ModeratorOpportunities';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -224,10 +225,18 @@ function App() {
             }
           />
           <Route
+            path="moderator/opportunities"
+            element={
+              <ProtectedRoute allowedRoles={['moderator']}>
+                <ModeratorOpportunities />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="moderator/charities/:charityId/opportunities"
             element={
               <ProtectedRoute allowedRoles={['moderator']}>
-                <CharityOpportunities />
+                {/* Charity opportunities moved inline into ModeratorManagement */}
               </ProtectedRoute>
             }
           />

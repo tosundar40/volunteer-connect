@@ -114,7 +114,7 @@ const Opportunity = sequelize.define('Opportunity', {
     comment: 'Pattern for recurring opportunities'
   },
   status: {
-    type: DataTypes.ENUM('draft', 'published', 'in_progress', 'completed', 'cancelled','active'),
+    type: DataTypes.ENUM('draft', 'published', 'in_progress', 'completed', 'cancelled','active', 'suspended'),
     defaultValue: 'draft'
   },
   visibility: {
@@ -206,6 +206,59 @@ const Opportunity = sequelize.define('Opportunity', {
   isFeatured: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  // Moderation fields for suspension management
+  suspendedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When the opportunity was suspended by moderator'
+  },
+  suspendedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    comment: 'Moderator who suspended the opportunity'
+  },
+  suspensionReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Reason provided for suspending the opportunity'
+  },
+  previousStatus: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Status before suspension to restore later'
+  },
+  resumedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When the opportunity was resumed'
+  },
+  resumedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    comment: 'Moderator who resumed the opportunity'
+  },
+  deletedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    comment: 'Moderator who deleted the opportunity'
+  },
+  deletionReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Reason provided for deleting the opportunity'
   }
 }, {
   tableName: 'opportunities',
