@@ -6,6 +6,8 @@ const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
 const http = require('http');
+const fs = require('fs');
+const https = require('https');
 const socketIO = require('socket.io');
 
 // Load environment variables
@@ -34,12 +36,29 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Initialize Express app
 const app = express();
-const server = http.createServer(app);
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1); // Trust first proxy in production
+  const credentials = {
+    pfx: fs.readFileSync("../../SSL_Certificate/retailServer.pfx")
+
+  };
+
+  var server = https.createServer(credentials, app);
+} else {
+  var server = http.createServer(app);
+}
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+console.log('Allowed origins:', allowedOrigins);
 
 // Initialize Socket.IO
 const io = socketIO(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true
   }
 });
@@ -52,8 +71,27 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 })); // Security headers
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
+  origin: function(origin, callback) {
+    // allow non-browser or same-origin requests (no origin)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
+    return callback(new Error('CORS policy: origin not allowed'), false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept', 
+    'Origin',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Methods'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }));
 app.use(compression()); // Compress responses
 app.use(express.json({ limit: '10mb' }));
@@ -68,10 +106,10 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
+    environment: process.env.NODE_ENV
   });
 });
 

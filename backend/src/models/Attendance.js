@@ -87,7 +87,8 @@ const Attendance = sequelize.define('Attendance', {
   indexes: [
     {
       unique: true,
-      fields: ['opportunity_id', 'volunteer_id']
+      fields: ['opportunity_id', 'volunteer_id'],
+      name: 'attendances_opportunity_volunteer_unique'
     }
   ]
 });
