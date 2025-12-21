@@ -140,7 +140,8 @@ const Dashboard = () => {
                 onClick={() => navigate('/moderator/management')}
                 fullWidth
               >
-                Go to Management
+                Go to Manage Users
+
               </Button>
             </CardActions>
           </Card>
@@ -151,9 +152,9 @@ const Dashboard = () => {
               <Stack direction="row" alignItems="center" spacing={2}>
                 <AssessmentIcon color="secondary" sx={{ fontSize: 40 }} />
                 <Box>
-                  <Typography variant="h6">Application Reviews</Typography>
+                  <Typography variant="h6">Opportunity Management</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Review flagged applications and handle disputes
+manage published opportunities, edit details, suspend listings, or remove content that violates guidelines.
                   </Typography>
                 </Box>
               </Stack>
@@ -161,10 +162,11 @@ const Dashboard = () => {
             <CardActions>
               <Button 
                 variant="outlined" 
-                onClick={() => navigate('/moderator/applications')}
+                onClick={() => navigate('/moderator/opportunities')}
                 fullWidth
               >
-                Review Applications
+               Go to Opportunity Management
+
               </Button>
             </CardActions>
           </Card>
@@ -203,13 +205,13 @@ const Dashboard = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatsCard
-            title="Flagged Applications"
+            title="Flagged Opportunities"
             value={stats.flaggedApplications || 0}
             icon={<WarningIcon />}
             color="error"
             action={{
-              label: 'Review Applications',
-              onClick: () => navigate('/moderator/applications')
+              label: 'Review Opportunities',
+              onClick: () => navigate('/moderator/opportunities')
             }}
           />
         </Grid>

@@ -255,6 +255,7 @@ const ManageOpportunities = () => {
       in_progress: "info",
       completed: "secondary",
       cancelled: "error",
+      suspended: "warning",
     };
     return colors[status] || "default";
   };

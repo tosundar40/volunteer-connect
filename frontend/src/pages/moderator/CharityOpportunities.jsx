@@ -243,7 +243,7 @@ const CharityOpportunities = () => {
         </Button>
         
         <Typography variant="h4" gutterBottom>
-          Charity Opportunities Management
+          Charity 
         </Typography>
       </Box>
 
