@@ -224,65 +224,99 @@ VITE_ENABLE_NOTIFICATIONS=true
 
 ## 🔌 API Reference
 
-### Authentication Endpoints
-```http
-POST   /api/auth/register          # Register new user
-POST   /api/auth/login             # User login  
-POST   /api/auth/logout            # User logout
-GET    /api/auth/me                # Get current user profile
-POST   /api/auth/refresh           # Refresh JWT token
-POST   /api/auth/forgot-password   # Request password reset
-POST   /api/auth/reset-password    # Reset password with token
+### Overview
+
+- **Base URL:** `{{VITE_API_URL}}` (example: `http://localhost:5000/api`)
+- **Auth:** Bearer token in `Authorization: Bearer <token>` for protected routes
+- **Format:** JSON request and response bodies. File uploads use `multipart/form-data`.
+- **Pagination:** `page` (1-based) and `limit` query params. Responses commonly include `{ items, total, page, limit }`.
+
+### Authentication
+- POST `/api/auth/register` — Register new user. Body: `{ firstName, lastName, email, password, role }`.
+- POST `/api/auth/login` — Login. Body: `{ email, password }`. Response: `{ token, refreshToken, user }`.
+- POST `/api/auth/logout` — Logout (invalidate refresh token).
+- GET `/api/auth/me` — Current user profile (auth required).
+- POST `/api/auth/refresh` — Refresh access token. Body: `{ refreshToken }`.
+- POST `/api/auth/forgot-password` — Request password reset. Body: `{ email }`.
+- POST `/api/auth/reset-password` — Reset password with token. Body: `{ token, password }`.
+
+### Users
+- GET `/api/users` — List users (admin). Query: `page, limit, role, q`.
+- GET `/api/users/:id` — Get user by id (admin or owner).
+- PUT `/api/users/:id` — Update user (owner or admin).
+- DELETE `/api/users/:id` — Deactivate user (admin).
+- POST `/api/users/upload-avatar` — Upload profile picture (auth, multipart/form-data).
+
+### Organizations (Charities)
+- GET `/api/organizations` — List organizations. Query: `page, limit, verified, q, city, category`.
+- POST `/api/organizations` — Create organization profile (auth).
+- GET `/api/organizations/:id` — Get organization details (public).
+- PUT `/api/organizations/:id` — Update organization (owner or admin).
+- DELETE `/api/organizations/:id` — Delete organization (admin).
+- POST `/api/organizations/:id/verify` — Verify organization (moderator/admin).
+
+### Opportunities
+- GET `/api/opportunities` — List opportunities (public). Query: `page, limit, q, category, city, dateFrom, dateTo, sort`.
+- POST `/api/opportunities` — Create opportunity (charity auth).
+- GET `/api/opportunities/:id` — Get opportunity details (public).
+- PUT `/api/opportunities/:id` — Update opportunity (owner or admin).
+- DELETE `/api/opportunities/:id` — Delete opportunity (owner or admin).
+- GET `/api/opportunities/:id/matches` — Suggested volunteer matches (charity auth).
+
+### Applications
+- POST `/api/applications` — Apply for opportunity (volunteer auth). Body: `{ opportunityId, coverLetter, availability }`.
+- GET `/api/applications` — List applications (user or filtered by admin/charity). Query: `opportunityId, status, page, limit`.
+- GET `/api/applications/:id` — Get application details (auth/role checks apply).
+- PUT `/api/applications/:id` — Update application (status changes by owner/charity/admin).
+- DELETE `/api/applications/:id` — Withdraw application (volunteer owner).
+- POST `/api/applications/:id/confirm` — Confirm participation (workflow endpoint).
+
+### Volunteers
+- GET `/api/volunteers` — List volunteer profiles. Query: `skills, city, q, page, limit`.
+- GET `/api/volunteers/:id` — Get volunteer profile (public).
+- PUT `/api/volunteers/:id` — Update volunteer profile (owner).
+- GET `/api/volunteers/:id/hours` — Get volunteer hours (owner or admin).
+- POST `/api/volunteers/skills` — Update volunteer skills/interests (owner).
+
+### Moderation & Admin
+- GET `/api/moderation/pending` — Pending approvals (moderator).
+- PUT `/api/moderation/approve/:id` — Approve item (moderator).
+- PUT `/api/moderation/reject/:id` — Reject item (moderator).
+- GET `/api/moderation/reports` — Moderation reports (moderator/admin).
+- GET `/api/users` — Admin user list with moderation filters.
+
+### Notifications & Real-time
+- Socket.IO endpoint: `{{VITE_SOCKET_URL}}`. Authenticate socket connections per server docs.
+- GET `/api/notifications` — List notifications (auth).
+- POST `/api/notifications/mark-read` — Mark notifications as read.
+
+### Reports & Analytics
+- GET `/api/reports` — List or generate reports (admin). Query params depend on report type.
+- POST `/api/reports` — Create a report (auth/role as required).
+
+### File Uploads
+- Endpoints accept `multipart/form-data`. Max file size controlled by `UPLOAD_MAX_SIZE` in backend env.
+
+### Errors & Rate Limits
+- Standard error response: `{ error: "Message", details?: {...} }`.
+- Rate limiting is applied per server config; 429 responses may include `Retry-After` header.
+
+### Examples
+- Login (curl):
+```bash
+curl -X POST {{VITE_API_URL}}/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"user@example.com","password":"secret"}'
 ```
 
-### User Management
-```http
-GET    /api/users                  # List users (admin only)
-GET    /api/users/:id              # Get user by ID
-PUT    /api/users/:id              # Update user profile
-DELETE /api/users/:id              # Deactivate user account
-POST   /api/users/upload-avatar    # Upload profile picture
+- List opportunities (curl):
+```bash
+curl "{{VITE_API_URL}}/opportunities?page=1&limit=10&q=education"
 ```
 
-### Organization Endpoints
-```http
-GET    /api/organizations          # List verified organizations
-POST   /api/organizations          # Create organization profile
-GET    /api/organizations/:id      # Get organization details
-PUT    /api/organizations/:id      # Update organization (owner only)
-DELETE /api/organizations/:id      # Delete organization (admin)
-POST   /api/organizations/:id/verify  # Verify organization (moderator)
-```
+Notes: Replace `{{VITE_API_URL}}` and `{{VITE_SOCKET_URL}}` with values from your environment files (`frontend/.env` or server config). For role-specific endpoints, consult the project's role/permissions documentation.
 
-### Opportunity Management
-```http
-GET    /api/opportunities          # List opportunities (with filters)
-POST   /api/opportunities          # Create new opportunity
-GET    /api/opportunities/:id      # Get opportunity details
-PUT    /api/opportunities/:id      # Update opportunity
-DELETE /api/opportunities/:id      # Delete opportunity
-GET    /api/opportunities/search   # Advanced search with filters
-```
-
-### Application System
-```http
-POST   /api/applications           # Apply for opportunity
-GET    /api/applications           # Get user's applications
-GET    /api/applications/:id       # Get application details
-PUT    /api/applications/:id       # Update application status
-DELETE /api/applications/:id       # Withdraw application
-```
-
-### Volunteer Management
-```http
-GET    /api/volunteers             # List volunteer profiles
-GET    /api/volunteers/:id         # Get volunteer profile
-PUT    /api/volunteers/:id         # Update volunteer profile
-GET    /api/volunteers/:id/hours   # Get volunteer hours
-POST   /api/volunteers/skills      # Update skills and interests
-```
-
-For detailed API documentation with request/response examples, see [DEVELOPMENT.md](DEVELOPMENT.md).
+For full request/response examples, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## 🏗️ Architecture Overview
 
