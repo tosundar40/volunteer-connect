@@ -206,6 +206,12 @@ exports.updateApplicationStatus = async (req, res, next) => {
       return next(new AppError('Not authorized to update this application', 403));
     }
 
+    // Prevent approving or confirming when the opportunity is suspended
+    const oppStatus = application.opportunity && application.opportunity.status;
+    if ((oppStatus === 'suspended' || oppStatus === 'suspend') && ['approved', 'confirmed'].includes(status) && req.user.role !== 'moderator') {
+      return next(new AppError('Cannot approve or confirm applications while the opportunity is suspended', 400));
+    }
+
     // Update application
     await application.update({
       status,

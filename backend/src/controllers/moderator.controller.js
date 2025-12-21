@@ -1,6 +1,6 @@
 const { Charity, Volunteer, User, Application, Opportunity } = require('../models');
 const { AppError } = require('../middleware/errorHandler');
-const { Op } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 
 // @desc    Get all charities for moderator review
 // @route   GET /api/moderator/charities
@@ -193,7 +193,7 @@ exports.reviewCharity = async (req, res, next) => {
     await charity.update({
       verificationStatus,
       verificationNotes: reviewNotes,
-      verificationDate: verificationStatus === 'verified' ? new Date() : null,
+      verificationDate: verificationStatus === 'approved' ? new Date() : null,
       documentationRequired: requiresDocumentation || false,
       reviewedBy: req.user.id,
       reviewedAt: new Date()
@@ -463,33 +463,106 @@ exports.getModeratorDashboardStats = async (req, res, next) => {
       return next(new AppError('Access denied. Moderator role required.', 403));
     }
 
-    // Get counts for various review items
+    // Calculate date for current month
+    const currentDate = new Date();
+    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+    // Get comprehensive dashboard statistics
     const stats = await Promise.all([
-      // Pending charity verifications
+      // Basic moderation counts
       Charity.count({
         where: { verificationStatus: 'pending' }
       }),
-      // Pending volunteer approvals
       Volunteer.count({
         where: { approvalStatus: 'pending' }
       }),
-      // Applications flagged for moderation
       Application.count({
         where: { status: 'moderator_review' }
       }),
-      // Background checks pending
       Volunteer.count({
         where: { backgroundCheckStatus: 'pending' }
+      }),
+      
+      // Platform overview stats
+      Volunteer.count(), // Total volunteers
+      Charity.count(),   // Total charities
+      Opportunity.count(), // Total opportunities
+      
+      // Total volunteer hours worked
+      Volunteer.sum('totalHoursVolunteered', {
+        where: {
+          totalHoursVolunteered: { [Op.not]: null }
+        }
+      }),
+      
+      // Monthly applications
+      Application.count({
+        where: {
+          createdAt: { [Op.gte]: firstDayOfMonth }
+        }
+      }),
+      
+      // Completed opportunities
+      Opportunity.count({
+        where: { status: 'completed' }
+      }),
+      
+      // Active applications (pending, approved, confirmed)
+      Application.count({
+        where: {
+          status: { [Op.in]: ['pending', 'under_review', 'approved', 'confirmed'] }
+        }
+      }),
+      
+      // Additional engagement metrics
+      Application.count({
+        where: { status: 'confirmed' }
+      }), // Confirmed applications as proxy for resolved reports
+      
+      // Active opportunities (published, active)
+      Opportunity.count({
+        where: {
+          status: { [Op.in]: ['published', 'active'] }
+        }
+      }),
+      
+      // Verified volunteers and charities
+      Volunteer.count({
+        where: { approvalStatus: 'approved' }
+      }),
+      Charity.count({
+        where: { verificationStatus: 'approved' }
       })
     ]);
 
     res.status(200).json({
       success: true,
       data: {
+        // Moderation overview stats
         pendingCharityVerifications: stats[0],
         pendingVolunteerVerifications: stats[1],
         flaggedApplications: stats[2],
-        pendingBackgroundChecks: stats[3]
+        pendingBackgroundChecks: stats[3],
+        
+        // Platform overview stats  
+        totalVolunteers: stats[4],
+        totalCharities: stats[5],
+        totalOpportunities: stats[12], // Using active opportunities count
+        totalVolunteerHours: stats[7] || 0,
+        
+        // Activity & engagement stats
+        monthlyApplications: stats[8],
+        completedOpportunities: stats[9],
+        activeApplications: stats[10],
+        resolvedReports: stats[11], // Using completed applications as proxy
+        
+        // Additional useful stats
+        verifiedVolunteers: stats[13],
+        verifiedCharities: stats[14],
+        
+        // Calculated ratios for better insights
+        verificationRate: stats[5] > 0 ? Math.round((stats[14] / stats[5]) * 100) : 0,
+        approvalRate: stats[4] > 0 ? Math.round((stats[13] / stats[4]) * 100) : 0
       }
     });
   } catch (error) {

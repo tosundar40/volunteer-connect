@@ -12,12 +12,13 @@ import { Tooltip } from '@mui/material';
 import {
   LocationOn, Schedule, Group, Person, Email, Phone ,
   ArrowBack,  TrendingUp, Category, Business
-  , Visibility
+  , Visibility, Flag
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import api, { BASE_URL } from '../../services/api';
 import volunteerService from '../../services/volunteerService';
+import ReportDialog from '../../components/ReportDialog';
 
 const OpportunityDetail = () => {
   const { id } = useParams();
@@ -36,6 +37,8 @@ const OpportunityDetail = () => {
     count: 0,
     loading: true
   });
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [selectedEntityForReport, setSelectedEntityForReport] = useState({ type: 'opportunity', id: id, name: '' });
 
   useEffect(() => {
     const fetchOpportunity = async () => {
@@ -349,6 +352,24 @@ const OpportunityDetail = () => {
               <Typography variant="body2">
                 <strong>Website:</strong> {opportunity.charity.websiteUrl}
               </Typography>
+
+              {/* Report Charity Button */}
+              {user && user.role !== 'moderator' && user.role !== 'admin' && user.role !== 'charity' && (
+                <Box sx={{ mt: 2 }}>
+                  <Button
+                    variant="text"
+                    color="error"
+                    size="small"
+                    startIcon={<Flag />}
+                    onClick={() => {
+                      setSelectedEntityForReport({ type: 'charity', id: opportunity.charity.id, name: opportunity.charity.organizationName });
+                      setReportDialogOpen(true);
+                    }}
+                  >
+                    Report Charity
+                  </Button>
+                </Box>
+              )}
             </Paper>
           )}
         </Grid>
@@ -500,6 +521,25 @@ const OpportunityDetail = () => {
           <Box sx={{ textAlign: 'center' }}>
             {getRoleBasedActions()}
           </Box>
+
+          {/* Report Button - Available for logged in users */}
+          {user && user.role !== 'moderator' && user.role !== 'admin' && (
+            <Box sx={{ mt: 2 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                color="error"
+                startIcon={<Flag />}
+                onClick={() => {
+                  setSelectedEntityForReport({ type: 'opportunity', id: id, name: opportunity?.title });
+                  setReportDialogOpen(true);
+                }}
+                size="small"
+              >
+                Report Opportunity
+              </Button>
+            </Box>
+          )}
         </Grid>
       </Grid>
 
@@ -590,6 +630,18 @@ const OpportunityDetail = () => {
           <Button onClick={() => setMatchDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Report Dialog */}
+      <ReportDialog
+        open={reportDialogOpen}
+        onClose={() => {
+          setReportDialogOpen(false);
+          setSelectedEntityForReport({ type: 'opportunity', id: id, name: opportunity?.title });
+        }}
+        entityType={selectedEntityForReport.type}
+        entityId={selectedEntityForReport.id}
+        entityName={selectedEntityForReport.name}
+      />
     </Container>
   );
 };

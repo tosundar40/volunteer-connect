@@ -44,6 +44,16 @@ import applicationService from '../../services/applicationService';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  // get display name from localStorage (used across pages)
+  const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const getDisplayName = () => {
+    if (displayName) return displayName;
+    const first = storedUser?.firstName || storedUser?.firstname || storedUser?.first_name || storedUser?.givenName || storedUser?.name;
+    const last = storedUser?.lastName || storedUser?.lastname || storedUser?.last_name || storedUser?.familyName || '';
+    const name = [first, last].filter(Boolean).join(' ');
+    return name || null;
+  };
+  const [displayName, setDisplayName] = useState(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [applications, setApplications] = useState([]);
@@ -67,12 +77,7 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       
-      // Get user from localStorage
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (!user || !user.id) {
-        setError('User not authenticated');
-        return;
-      }
+    
 
       // First get volunteer profile to get volunteerId and approvalStatus
       const profileResponse = await volunteerService.getMyProfile();
@@ -80,6 +85,18 @@ const Dashboard = () => {
       const status = profileResponse.data.approvalStatus;
       setVolunteerId(volId);
       setApprovalStatus(status);
+      // Prefer the profile name returned from the server (may be nested under `user`)
+      try {
+        const prof = profileResponse.data || {};
+        let name = null;
+        const userPart = prof.user || prof;
+        const first = userPart.firstName || userPart.firstname || userPart.givenName || userPart.name || '';
+        const last = userPart.lastName || userPart.lastname || userPart.familyName || '';
+        name = [first, last].filter(Boolean).join(' ');
+        if (name) setDisplayName(name);
+      } catch (e) {
+        // ignore and fall back to localStorage name
+      }
 
       // Fetch stats and applications in parallel
       const [statsResponse, applicationsResponse] = await Promise.all([
@@ -176,7 +193,7 @@ const Dashboard = () => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       
       <Typography variant="h4" gutterBottom>
-        Volunteer Dashboard
+        {getDisplayName() ? `Welcome, ${getDisplayName()}` : 'Volunteer Dashboard'}
       </Typography>
       
       {/* Pending Approval Alert */}

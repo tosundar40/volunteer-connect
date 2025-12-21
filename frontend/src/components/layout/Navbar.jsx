@@ -25,6 +25,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import PeopleIcon from "@mui/icons-material/People";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import HistoryIcon from "@mui/icons-material/History";
+import FlagIcon from "@mui/icons-material/Flag";
 import { logout } from "../../store/slices/authSlice";
 import { authService } from "../../services/authService";
 import { BASE_URL } from "../../services/api";
@@ -180,6 +181,11 @@ const Navbar = () => {
             label: "Opportunities Management",
             path: "/moderator/opportunities",
             icon: <WorkIcon />,
+          },
+          {
+            label: "Reports",
+            path: "/moderator/reports",
+            icon: <FlagIcon />,
           },
           {
             label: "All Opportunities",

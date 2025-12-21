@@ -98,15 +98,15 @@ const ModeratorManagement = () => {
   const [selectedCharityForOpportunities, setSelectedCharityForOpportunities] = useState(null);
   const [loadingCharityOpps, setLoadingCharityOpps] = useState(false);
 
-  // Fetch dashboard stats
-  const fetchStats = async () => {
-    try {
-      const response = await moderatorService.getDashboardStats();
-      setStats(response.data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
+  // // Fetch dashboard stats
+  // const fetchStats = async () => {
+  //   try {
+  //     const response = await moderatorService.getDashboardStats();
+  //     setStats(response.data);
+  //   } catch (error) {
+  //     console.error('Error fetching stats:', error);
+  //   }
+  // };
 
   
 
@@ -136,7 +136,7 @@ const ModeratorManagement = () => {
         toast.success('Volunteer reactivated successfully');
         fetchVolunteers();
       }
-      fetchStats();
+      //fetchStats();
       setConfirmActionOpen(false);
       setConfirmActionItem(null);
       setConfirmActionType('');
@@ -244,7 +244,7 @@ const ModeratorManagement = () => {
   };
 
   useEffect(() => {
-    fetchStats();
+   // fetchStats();
     if (tabValue === 0) {
       fetchCharities();
     } else if (tabValue === 1) {
@@ -436,7 +436,7 @@ const ModeratorManagement = () => {
       
       setDeleteDialog(false);
       setSelectedItem(null);
-      fetchStats(); // Refresh stats
+      //fetchStats(); // Refresh stats
     } catch (error) {
       toast.error(error.response?.data?.error || `Failed to delete ${deleteType}`);
     } finally {
@@ -506,7 +506,7 @@ const ModeratorManagement = () => {
       setApprovalDialog(false);
       setApprovalTarget(null);
       setApprovalTargetType('');
-      fetchStats(); // Refresh stats
+      //fetchStats(); // Refresh stats
     } catch (error) {
       toast.error(error.response?.data?.error || `Failed to ${approvalType}`);
     } finally {
@@ -543,25 +543,25 @@ const ModeratorManagement = () => {
   };
 
   // Stats cards
-  const StatsCard = ({ title, value, icon, color = 'primary' }) => (
-    <Card>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography variant="h4" color={`${color}.main`}>
-              {value}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {title}
-            </Typography>
-          </Box>
-          <Box sx={{ color: `${color}.main` }}>
-            {icon}
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
+  // const StatsCard = ({ title, value, icon, color = 'primary' }) => (
+  //   <Card>
+  //     <CardContent>
+  //       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+  //         <Box>
+  //           <Typography variant="h4" color={`${color}.main`}>
+  //             {value}
+  //           </Typography>
+  //           <Typography variant="body2" color="text.secondary">
+  //             {title}
+  //           </Typography>
+  //         </Box>
+  //         <Box sx={{ color: `${color}.main` }}>
+  //           {icon}
+  //         </Box>
+  //       </Box>
+  //     </CardContent>
+  //   </Card>
+  // );
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -570,7 +570,7 @@ const ModeratorManagement = () => {
       </Typography>
       
       {/* Stats Overview */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      {/* <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatsCard
             title="Pending Charity Verifications"
@@ -603,7 +603,7 @@ const ModeratorManagement = () => {
             color="secondary"
           />
         </Grid>
-      </Grid>
+      </Grid> */}
 
       {/* Tabs */}
       <Paper>

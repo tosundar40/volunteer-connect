@@ -26,6 +26,7 @@ const moderationRoutes = require('./routes/moderation.routes');
 const moderatorRoutes = require('./routes/moderator.routes');
 const attendanceRoutes = require('./routes/attendance.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const reportRoutes = require('./routes/report.routes');
 
 // Import middleware
 const { errorHandler, notFound } = require('./middleware/errorHandler');
@@ -86,6 +87,7 @@ app.use('/api/moderation', moderationRoutes);
 app.use('/api/moderator', moderatorRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/reports', reportRoutes);
 app.use('/api/admin', require('./routes/admin.routes'));
 
 // Error handling

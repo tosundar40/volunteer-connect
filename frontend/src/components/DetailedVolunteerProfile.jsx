@@ -48,10 +48,13 @@ import {
   Warning as WarningIcon,
   AccessTime as TimeIcon,
   Language as LanguageIcon,
-  Interests as InterestsIcon
+  Interests as InterestsIcon,
+  Flag as FlagIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import api from '../services/api';
+import { useSelector } from 'react-redux';
+import ReportDialog from './ReportDialog';
 
 const DetailedVolunteerProfile = ({ 
   open, 
@@ -61,8 +64,10 @@ const DetailedVolunteerProfile = ({
   onRequestInfo,
   onVettingDecision 
 }) => {
+  const { user } = useSelector((state) => state.auth);
   const [profileCompleteness, setProfileCompleteness] = useState(0);
   const [riskAssessment, setRiskAssessment] = useState('low');
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [averageRating, setAverageRating] = useState({
     rating: 0,
     count: 0,
@@ -483,6 +488,19 @@ const DetailedVolunteerProfile = ({
       </DialogContent>
 
       <DialogActions sx={{ p: 3, gap: 1 }}>
+        {/* Report Button - Available for charity users */}
+        {user?.role === 'charity' && volunteer && (
+          <Button 
+            variant="text" 
+            color="error"
+            startIcon={<FlagIcon />}
+            onClick={() => setReportDialogOpen(true)}
+            sx={{ mr: 'auto' }}
+          >
+            Report
+          </Button>
+        )}
+
         <Button 
           variant="outlined" 
           onClick={() => onRequestInfo(volunteer, application)}
@@ -512,6 +530,15 @@ const DetailedVolunteerProfile = ({
           </>
         )}
       </DialogActions>
+
+      {/* Report Dialog */}
+      <ReportDialog
+        open={reportDialogOpen}
+        onClose={() => setReportDialogOpen(false)}
+        entityType="user"
+        entityId={volunteer?.userId}
+        entityName={`${volunteer?.firstName} ${volunteer?.lastName}`}
+      />
     </Dialog>
   );
 };

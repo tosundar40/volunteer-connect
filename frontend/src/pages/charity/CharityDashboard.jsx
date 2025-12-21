@@ -40,6 +40,7 @@ const CharityDashboard = () => {
   const { user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(true);
   const [charityData, setCharityData] = useState(null);
+  const [displayName, setDisplayName] = useState(null);
   const [stats, setStats] = useState({
     totalOpportunities: 0,
     activeOpportunities: 0,
@@ -58,6 +59,18 @@ const CharityDashboard = () => {
 
       setCharityData(charityResponse.data.data);
       setStats(statsResponse.data.data || stats);
+        // Derive a display name: prefer organizationName, otherwise use nested user name or redux user
+        try {
+          const c = charityResponse.data.data || {};
+          let name = c.organizationName || '';
+          const userPart = c.user || user || {};
+          const first = userPart.firstName || userPart.firstname || userPart.givenName || userPart.name || '';
+          const last = userPart.lastName || userPart.lastname || userPart.familyName || '';
+          if (!name) name = [first, last].filter(Boolean).join(' ');
+          if (name) setDisplayName(name);
+        } catch (e) {
+          // ignore and leave displayName null
+        }
     } catch (error) {
       toast.error("Failed to load dashboard data");
       console.error("Dashboard error:", error);
@@ -129,7 +142,7 @@ const CharityDashboard = () => {
       >
         <Typography variant="h4" component="h1">
           <DashboardIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          Charity Dashboard
+          {displayName ? `Welcome, ${displayName}` : 'Charity Dashboard'}
         </Typography>
         <Button
           variant="contained"
