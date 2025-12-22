@@ -224,7 +224,6 @@ LOG_FILE=./logs/app.log          # Log file location
 ```env
 # API Configuration
 VITE_API_URL=http://localhost:5000/api    # Backend API endpoint
-VITE_SOCKET_URL=http://localhost:5000     # WebSocket server endpoint
 
 # Application Settings
 VITE_APP_NAME=Volunteer Connect           # Application name
@@ -566,7 +565,6 @@ FRONTEND_URL=http://localhost:5173
 
 ```env
 VITE_API_URL=http://localhost:5000/api
-VITE_SOCKET_URL=http://localhost:5000
 ```
 
 ## Troubleshooting

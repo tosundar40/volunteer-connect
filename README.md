@@ -32,11 +32,11 @@
 - **Security Monitoring**: Track and manage platform security
 
 ### Technical Features
-- **Real-time Notifications**: Instant updates via WebSocket connections
-- **Security First**: JWT authentication, RBAC, and data encryption
+- **Notification System**: Database-based notifications with email support
+- **Security First**: JWT authentication, role-based access control, and secure password hashing
 - **API-First**: RESTful APIs with comprehensive documentation
-- **Scalable Architecture**: Microservices-ready architecture with Docker support
-- **GDPR Compliant**: Privacy-focused design with data protection controls
+- **Scalable Architecture**: Docker-ready architecture with PostgreSQL database
+- **Data Protection**: Privacy-focused design with user consent management
 
 ## 🚀 Tech Stack
 
@@ -44,11 +44,10 @@
 - **Runtime**: Node.js 18+ with Express.js framework
 - **Database**: PostgreSQL 14+ with Sequelize ORM
 - **Authentication**: JWT-based auth with bcrypt password hashing
-- **Real-time**: Socket.IO for live notifications and messaging
 - **File Storage**: Multer for file uploads and management
 - **Email**: Nodemailer for transactional emails
 - **Logging**: Winston for comprehensive logging
-- **Security**: Helmet, CORS, rate limiting, and input validation
+- **Security**: Helmet, CORS, and input validation
 
 ### Frontend
 - **Framework**: React 18+ with modern hooks and context
@@ -211,7 +210,6 @@ Create `frontend/.env`:
 ```env
 # API Configuration
 VITE_API_URL=http://localhost:5000/api
-VITE_SOCKET_URL=http://localhost:5000
 
 # App Configuration
 VITE_APP_NAME=Volunteer Connect
@@ -285,10 +283,9 @@ VITE_ENABLE_NOTIFICATIONS=true
 - GET `/api/moderation/reports` — Moderation reports (moderator/admin).
 - GET `/api/users` — Admin user list with moderation filters.
 
-### Notifications & Real-time
-- Socket.IO endpoint: `{{VITE_SOCKET_URL}}`. Authenticate socket connections per server docs.
-- GET `/api/notifications` — List notifications (auth).
-- POST `/api/notifications/mark-read` — Mark notifications as read.
+### Notifications
+- GET `/api/notifications` — List user notifications (auth required)
+- POST `/api/notifications/mark-read` — Mark notifications as read (auth required)
 
 ### Reports & Analytics
 - GET `/api/reports` — List or generate reports (admin). Query params depend on report type.
@@ -326,13 +323,10 @@ For full request/response examples, see [DEVELOPMENT.md](DEVELOPMENT.md).
 │   React Client  │    │   Express API    │    │  PostgreSQL DB  │
 │                 │────│                  │────│                 │
 │  • Redux Store  │    │  • Controllers   │    │  • User Tables  │
-│  • Components   │    │  • Services      │    │  • Opportunity  │
+│  • Components   │    │  • Services      │    │  • Opportunities│
 │  • API Clients  │    │  • Middleware    │    │  • Applications │
+│                 │    │  • Notifications │    │  • Notifications│
 └─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │
-         └───────────────────────┘
-              WebSocket Connection
-              (Real-time notifications)
 ```
 
 ### Key Design Patterns
@@ -381,20 +375,13 @@ For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 - ✅ Real-time notifications
 - ✅ Basic admin dashboard
 
-### Upcoming Features (v1.1)
-- 🔄 Advanced matching algorithms with ML
-- 🔄 Mobile app (React Native)
-- 🔄 Integration with calendar systems
-- 🔄 Advanced analytics and reporting
-- 🔄 Multi-language support
-- 🔄 API rate limiting and caching
-
-### Future Releases
-- 📅 Background check integrations
-- 📅 Payment processing for events
-- 📅 Social features and volunteer communities  
-- 📅 Advanced messaging and collaboration tools
-- 📅 Third-party integrations (Slack, Teams, etc.)
+### Future Enhancements (Contributions Welcome)
+- 📅 Enhanced matching algorithms
+- 📅 Mobile app development
+- 📅 Calendar system integration
+- 📅 Advanced analytics and reporting
+- 📅 Real-time messaging system
+- 📅 API rate limiting and caching
 
 ## 🛠️ Development
 - `PUT /api/charities/:id` - Update charity profile
@@ -505,10 +492,10 @@ For detailed guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 - ✅ Complete authentication system
 - ✅ Organization and volunteer management
 - ✅ Opportunity creation and applications
-- ✅ Real-time notifications
+- ✅ Basic matching system
 - ✅ Admin dashboard and moderation
-
-
+- ✅ Email notifications
+- ✅ File upload management
 
 ## 📱 Browser Support
 
