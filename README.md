@@ -28,8 +28,8 @@
 - **User Management**: Comprehensive admin dashboard for user oversight
 - **Moderation Tools**: Review and moderate organizations and opportunities
 - **Analytics Dashboard**: Insights into platform usage and volunteer engagement
-- **Reporting System**: Generate reports on platform activities and impact
-- **Security Monitoring**: Track and manage platform security
+- **Reporting System**: User-submitted moderation reports (users, charities, opportunities) for issues like inappropriate content, spam, harassment, false information, and safety concerns — reviewed by moderators/admins
+
 
 ### Technical Features
 - **Notification System**: Database-based notifications with email support
