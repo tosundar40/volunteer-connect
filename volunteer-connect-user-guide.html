@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volunteer Connect - User Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        const baseurl = "/";
+        //baseurl//Add ur links here
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll("[data-href]").forEach(a => {
+                const path = a.getAttribute("data-href") || "";
+                // Ensure no duplicate slashes when joining
+                const url = path.startsWith("/") ? baseurl + path : baseurl + "/" + path;
+                a.setAttribute("href", url);
+            });
+        });
+    </script>
+</head>
+
+<body class="text-gray-800" style="background-color: #f5f5f5; font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+
+        <!-- Navigation -->
+        <nav class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h1 class="text-2xl font-bold text-blue-700 mb-4" style="color: #1976d2;">Volunteer Connect - User Guide</h1>
+       
+            <div class="flex flex-wrap gap-3">
+                <a href="#getting-started" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all font-medium" style="background-color: #1976d2;">Getting Started</a>
+                <a href="#volunteer-flow" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all font-medium" style="background-color: #2e7d32;">Volunteers</a>
+                <a href="#charity-flow" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all font-medium" style="background-color: #9c27b0;">Charities</a>
+                <a href="#moderator-flow" class="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-all font-medium" style="background-color: #d32f2f;">Moderators</a>
+            </div>
+        </nav>
+
+        <!-- Getting Started Section -->
+        <section id="getting-started" class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4" style="color: #1976d2;">Getting Started</h2>
+
+            <div class="space-y-4">
+                <div class="border-l-2 border-blue-400 pl-4">
+                    <h3 class="font-medium mb-2">1. Visit Platform</h3>
+                    <p class="text-gray-600 text-sm mb-3">Start by exploring the platform:</p>
+                    <div class="space-x-2">
+                        <a target="_blank" data-href="/"
+                            class="inline-block px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #1976d2;">Visit Homepage</a>
+                        <a target="_blank" data-href="/opportunities"
+                            class="inline-block px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #42a5f5;">Browse Opportunities</a>
+                    </div>
+                </div>
+
+                <div class="border-l-2 border-blue-400 pl-4">
+                    <h3 class="font-medium mb-2">2. Create Account</h3>
+                    <p class="text-gray-600 text-sm mb-3">Choose your role:</p>
+                    <div class="space-x-2 mb-2">
+                        <a target="_blank" data-href="/register-volunteer"
+                            class="inline-block px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #2e7d32;">Volunteer</a>
+                        <a target="_blank" data-href="/register-charity"
+                            class="inline-block px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #9c27b0;">Charity</a>
+                    </div>
+                    <p class="text-xs text-gray-500">Complete profile after registration for approval</p>
+                </div>
+
+                <div class="border-l-2 border-blue-400 pl-4">
+                    <h3 class="font-medium mb-2">3. Login</h3>
+                    <p class="text-gray-600 text-sm mb-3">Access your personalized dashboard:</p>
+                    <a target="_blank" data-href="/login"
+                        class="inline-block px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #1976d2;">Login Here</a>
+                    <p class="text-xs text-gray-500 mt-2">Auto-redirects to your role-specific dashboard</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Volunteer Flow -->
+        <section id="volunteer-flow" class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4" style="color: #1976d2;">For Volunteers</h2>
+
+            <div class="space-y-4">
+                <div class="flex justify-between items-center pb-2 border-b">
+                    <h3 class="font-medium">Quick Actions</h3>
+                    <div class="space-x-2">
+                        <a target="_blank" data-href="/volunteer/dashboard"
+                            class="px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #2e7d32;">Dashboard</a>
+                        <a target="_blank" data-href="/volunteer/profile"
+                            class="px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #2e7d32;">Profile</a>
+                    </div>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="font-medium mb-2">Find & Apply</h4>
+                        <ul class="space-y-1 text-sm text-gray-600">
+                            <li><a target="_blank" data-href="/opportunities" class="hover:underline" style="color: #1976d2;">Browse opportunities</a></li>
+                            <li>Filter by location, date, skills</li>
+                            <li>Submit applications with messages</li>
+                            <li>Track application status</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium mb-2">Track & Manage</h4>
+                        <ul class="space-y-1 text-sm text-gray-600">
+                            <li><a target="_blank" data-href="/volunteer/applications" class="hover:underline" style="color: #1976d2;">View applications</a></li>
+                            <li><a target="_blank" data-href="/volunteer/attendance" class="hover:underline" style="color: #1976d2;">Attendance history</a></li>
+                            <li>Confirm participation when accepted</li>
+                            <li>Rate experiences & get ratings</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="bg-green-50 p-3 rounded text-sm">
+                    <strong>Remember:</strong> Complete your profile and wait for moderator approval before applying to opportunities.
+                </div>
+            </div>
+        </section>
+
+        <!-- Charity Flow -->
+        <section id="charity-flow" class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4" style="color: #1976d2;">For Charities</h2>
+
+            <div class="space-y-4">
+                <div class="flex justify-between items-center pb-2 border-b">
+                    <h3 class="font-medium">Quick Actions</h3>
+                    <div class="space-x-2">
+                        <a target="_blank" data-href="/charity/dashboard"
+                            class="px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #9c27b0;">Dashboard</a>
+                        <a target="_blank" data-href="/charity/opportunities/create"
+                            class="px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #9c27b0;">Create Opportunity</a>
+                    </div>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="font-medium mb-2">Manage Opportunities</h4>
+                        <ul class="space-y-1 text-sm text-gray-600">
+                            <li><a target="_blank" data-href="/charity/opportunities" class="hover:underline" style="color: #1976d2;">View my opportunities</a></li>
+                            <li>Set requirements & deadlines</li>
+                            <li>Edit details & availability</li>
+                            <li>Monitor application metrics</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium mb-2">Review Applications</h4>
+                        <ul class="space-y-1 text-sm text-gray-600">
+                            <li><a target="_blank" data-href="/charity/applications" class="hover:underline" style="color: #1976d2;">Manage applications</a></li>
+                            <li>Review volunteer profiles</li>
+                            <li>Accept or reject applicants</li>
+                            <li>Communicate with volunteers</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="bg-purple-50 p-3 rounded text-sm">
+                    <strong>Remember:</strong> Complete your charity profile and await moderator verification before creating opportunities.
+                </div>
+            </div>
+        </section>
+
+        <!-- Moderator Flow -->
+        <section id="moderator-flow" class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4" style="color: #1976d2;">For Moderators</h2>
+
+            <div class="space-y-4">
+                <div class="flex justify-between items-center pb-2 border-b">
+                    <h3 class="font-medium">Quick Actions</h3>
+                    <div class="space-x-2">
+                        <a target="_blank" data-href="/moderator/dashboard"
+                            class="px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #d32f2f;">Dashboard</a>
+                        <a target="_blank" data-href="/moderator/management"
+                            class="px-3 py-1 text-white rounded text-sm hover:opacity-90 transition-all" style="background-color: #d32f2f;">Manage Users</a>
+                    </div>
+                </div>
+                
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div>
+                        <h4 class="font-medium mb-2">User Management</h4>
+                        <ul class="space-y-1 text-sm text-gray-600">
+                            <li>Approve charity registrations</li>
+                            <li>Verify volunteer profiles</li>
+                            <li>Review background checks</li>
+                            <li>Handle account issues</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium mb-2">Content Oversight</h4>
+                        <ul class="space-y-1 text-sm text-gray-600">
+                            <li><a target="_blank" data-href="/moderator/opportunities" class="hover:underline" style="color: #1976d2;">Review opportunities</a></li>
+                            <li>Remove inappropriate content</li>
+                            <li>Verify opportunity legitimacy</li>
+                            <li>Monitor platform activity</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium mb-2">Reports & Issues</h4>
+                        <ul class="space-y-1 text-sm text-gray-600">
+                            <li><a target="_blank" data-href="/moderator/reports" class="hover:underline" style="color: #1976d2;">Handle reports</a></li>
+                            <li>Investigate user complaints</li>
+                            <li>Issue warnings & suspensions</li>
+                            <li>Generate platform analytics</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="bg-red-50 p-3 rounded text-sm">
+                    <strong>Platform Health:</strong> Monitor registrations, verify new users, and maintain community standards.
+                </div>
+            </div>
+        </section>
+
+        <!-- Common Features -->
+
+ 
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-600 py-8">
+            <p class="text-sm">Volunteer Connect Platform - Connecting volunteers with meaningful opportunities to make
+                a difference in their communities.</p>
+        </footer>
+    </div>
+</body>
+
+</html>

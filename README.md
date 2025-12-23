@@ -165,6 +165,7 @@ npm run create-admin
 - **[Development Documentation](DEVELOPMENT.md)** - Architecture, APIs, and development
 - **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to the project
 - **[API Documentation](#api-reference)** - Complete API reference
+ - **User Guide (HTML):** [volunteer-connect-user-guide.html](volunteer-connect-user-guide.html) - End-user flow and quick links
 
 ## 🔧 Configuration
 ### Backend Environment Variables
