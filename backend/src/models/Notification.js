@@ -36,7 +36,8 @@ const Notification = sequelize.define('Notification', {
       'additional_info_provided',
       'additional_info_requested',
       'volunteer_confirmed',
-      'opportunity_suspended'
+      'opportunity_suspended',
+      'opportunity_resumed'
 
     ),
     allowNull: false
